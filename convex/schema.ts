@@ -23,6 +23,7 @@ export default defineSchema({
         longitude: v.number(),
       })
     ),
+    maxDistance: v.optional(v.number()), // in miles
     createdAt: v.number(),
     updatedAt: v.number(),
   })

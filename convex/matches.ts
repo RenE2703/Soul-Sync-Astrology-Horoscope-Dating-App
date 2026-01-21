@@ -7,6 +7,7 @@ import {
     internalQuery,
     query,
 } from "./_generated/server";
+import { isWithinDistance } from "./lib/distance";
 import { withResolvedPhotos } from "./lib/photos";
 
 // Types for vector search results
@@ -374,6 +375,9 @@ export const generateDailyPicks = action({
       // Check age preferences
       if (candidate.age < user.ageRange.min || candidate.age > user.ageRange.max) continue;
       if (user.age < candidate.ageRange.min || user.age > candidate.ageRange.max) continue;
+
+      // Check distance preferences
+      if (!isWithinDistance(user.location, candidate.location, user.maxDistance)) continue;
 
       // Check if already swiped
       const existingSwipe = await ctx.runQuery(internal.swipes.getSwipe, {

@@ -20,6 +20,7 @@ export default function OnboardingLayout() {
       <Stack.Screen name="gender" />
       <Stack.Screen name="looking-for" />
       <Stack.Screen name="age-range" />
+      <Stack.Screen name="location" />
       <Stack.Screen name="bio" />
       <Stack.Screen name="interests" />
       <Stack.Screen name="photos" />

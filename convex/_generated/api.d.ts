@@ -9,6 +9,7 @@
  */
 
 import type * as files from "../files.js";
+import type * as lib_distance from "../lib/distance.js";
 import type * as lib_photos from "../lib/photos.js";
 import type * as matches from "../matches.js";
 import type * as messages from "../messages.js";
@@ -25,6 +26,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   files: typeof files;
+  "lib/distance": typeof lib_distance;
   "lib/photos": typeof lib_photos;
   matches: typeof matches;
   messages: typeof messages;

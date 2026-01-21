@@ -1,5 +1,6 @@
 import { useUser } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
+import Slider from "@react-native-community/slider";
 import { useMutation, useQuery } from "convex/react";
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
@@ -22,6 +23,7 @@ import { KeyboardAwareView } from "@/components/ui";
 import { api } from "@/convex/_generated/api";
 import { AdaptiveGlassView, supportsGlassEffect } from "@/lib/glass";
 import { hapticButtonPress, hapticSelection, hapticSuccess } from "@/lib/haptics";
+import { requestAndGetLocation } from "@/lib/location";
 import { AppColors, useAppTheme } from "@/lib/theme";
 
 const INTERESTS = [
@@ -56,6 +58,11 @@ export default function EditProfileScreen() {
   const [interests, setInterests] = useState<string[]>([]);
   const [photos, setPhotos] = useState<PhotoEntry[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Location state
+  const [maxDistance, setMaxDistance] = useState(25);
+  const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [isUpdatingLocation, setIsUpdatingLocation] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -69,6 +76,9 @@ export default function EditProfileScreen() {
           isNew: false,
         }))
       );
+      // Location settings
+      setMaxDistance(profile.maxDistance ?? 25);
+      setLocation(profile.location ?? null);
     }
   }, [profile]);
 
@@ -155,6 +165,8 @@ export default function EditProfileScreen() {
         bio,
         interests,
         photos: photoIds,
+        maxDistance,
+        ...(location && { location }),
       });
 
       hapticSuccess();
@@ -170,6 +182,30 @@ export default function EditProfileScreen() {
   const handleCancel = () => {
     hapticButtonPress();
     router.back();
+  };
+
+  const handleUpdateLocation = async () => {
+    hapticButtonPress();
+    setIsUpdatingLocation(true);
+    try {
+      const result = await requestAndGetLocation();
+      if (result.location) {
+        setLocation(result.location);
+        hapticSuccess();
+      }
+    } catch (error) {
+      console.error("Failed to update location:", error);
+    } finally {
+      setIsUpdatingLocation(false);
+    }
+  };
+
+  const handleDistanceChange = (value: number) => {
+    const rounded = Math.round(value);
+    if (rounded !== maxDistance) {
+      hapticSelection();
+      setMaxDistance(rounded);
+    }
   };
 
   const isValid = name.trim().length >= 2 && bio.trim().length >= 10 && interests.length >= 3 && photos.length >= 1;
@@ -307,6 +343,77 @@ export default function EditProfileScreen() {
                     </TouchableOpacity>
                   );
                 })}
+              </View>
+            </View>
+
+            {/* Location Section */}
+            <View style={styles.section}>
+              <Text style={[styles.sectionLabel, { color: colors.onSurfaceVariant }]}>
+                LOCATION
+              </Text>
+              
+              {/* Location Status */}
+              <AdaptiveGlassView
+                style={styles.locationCard}
+                fallbackStyle={styles.inputFallback}
+              >
+                <View style={styles.locationStatus}>
+                  <View style={styles.locationInfo}>
+                    <Ionicons 
+                      name={location ? "location" : "location-outline"} 
+                      size={24} 
+                      color={location ? colors.primary : colors.onSurfaceVariant} 
+                    />
+                    <Text style={[styles.locationText, { color: colors.onBackground }]}>
+                      {location ? "Location enabled" : "Location not set"}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.updateLocationButton, { backgroundColor: colors.primary }]}
+                    onPress={handleUpdateLocation}
+                    disabled={isUpdatingLocation}
+                    activeOpacity={0.8}
+                  >
+                    {isUpdatingLocation ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <Text style={styles.updateLocationText}>
+                        {location ? "Update" : "Enable"}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </AdaptiveGlassView>
+
+              {/* Distance Slider */}
+              <View style={styles.distanceSection}>
+                <View style={styles.distanceHeader}>
+                  <Text style={[styles.distanceLabel, { color: colors.onSurfaceVariant }]}>
+                    Maximum distance
+                  </Text>
+                  <Text style={[styles.distanceValue, { color: colors.primary }]}>
+                    {maxDistance} miles
+                  </Text>
+                </View>
+                <Slider
+                  style={styles.slider}
+                  minimumValue={5}
+                  maximumValue={100}
+                  value={maxDistance}
+                  onValueChange={handleDistanceChange}
+                  minimumTrackTintColor={colors.primary}
+                  maximumTrackTintColor={colors.surfaceVariant}
+                  thumbTintColor={colors.primary}
+                  step={5}
+                />
+                <View style={styles.sliderLabels}>
+                  <Text style={[styles.sliderEndLabel, { color: colors.onSurfaceVariant }]}>
+                    5 mi
+                  </Text>
+                  <Text style={[styles.sliderEndLabel, { color: colors.onSurfaceVariant }]}>
+                    100 mi
+                  </Text>
+                </View>
               </View>
             </View>
 
@@ -469,6 +576,69 @@ const styles = StyleSheet.create({
   interestText: {
     fontSize: 15,
     fontWeight: "600",
+  },
+  // Location
+  locationCard: {
+    borderRadius: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    marginBottom: 16,
+  },
+  locationStatus: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  locationInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  locationText: {
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  updateLocationButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+    minWidth: 80,
+    alignItems: "center",
+  },
+  updateLocationText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#FFFFFF",
+  },
+  distanceSection: {
+    marginTop: 8,
+  },
+  distanceHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  distanceLabel: {
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  distanceValue: {
+    fontSize: 20,
+    fontWeight: "700",
+  },
+  slider: {
+    width: "100%",
+    height: 40,
+  },
+  sliderLabels: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: -8,
+  },
+  sliderEndLabel: {
+    fontSize: 12,
+    fontWeight: "500",
   },
   // Footer
   footer: { 

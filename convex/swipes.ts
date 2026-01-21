@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
+import { getDistanceBetweenUsers, isWithinDistance } from "./lib/distance";
 import { withResolvedPhotos, withResolvedPhotosArray } from "./lib/photos";
 
 // Get a specific swipe (internal)
@@ -148,6 +149,11 @@ export const getSwipeFeed = query({
       )
         return false;
 
+      // Check distance preferences (if current user has location and max distance set)
+      if (!isWithinDistance(currentUser.location, user.location, currentUser.maxDistance)) {
+        return false;
+      }
+
       return true;
     });
 
@@ -156,7 +162,13 @@ export const getSwipeFeed = query({
     const topMatches = shuffled.slice(0, 20);
     
     // Resolve photo URLs for all users
-    return withResolvedPhotosArray(ctx, topMatches);
+    const usersWithPhotos = await withResolvedPhotosArray(ctx, topMatches);
+    
+    // Add distance to each user
+    return usersWithPhotos.map((user) => ({
+      ...user,
+      distance: getDistanceBetweenUsers(currentUser.location, user.location),
+    }));
   },
 });
 

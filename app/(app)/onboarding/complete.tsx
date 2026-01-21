@@ -61,6 +61,11 @@ export default function CompleteScreen() {
         const ageRangeMin = parseInt(params.ageRangeMin as string, 10);
         const ageRangeMax = parseInt(params.ageRangeMax as string, 10);
         const photos = JSON.parse(params.photos as string) as string[];
+        
+        // Location params (optional)
+        const latitude = params.latitude ? parseFloat(params.latitude as string) : undefined;
+        const longitude = params.longitude ? parseFloat(params.longitude as string) : undefined;
+        const maxDistance = params.maxDistance ? parseInt(params.maxDistance as string, 10) : undefined;
 
         setStatus("generating");
 
@@ -74,6 +79,10 @@ export default function CompleteScreen() {
           ageRange: { min: ageRangeMin, max: ageRangeMax },
           interests,
           photos,
+          ...(latitude !== undefined && longitude !== undefined && {
+            location: { latitude, longitude },
+          }),
+          ...(maxDistance !== undefined && { maxDistance }),
         });
 
         setStatus("done");

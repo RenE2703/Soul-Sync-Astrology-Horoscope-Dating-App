@@ -22,9 +22,10 @@ const PHOTO_HEIGHT = SCREEN_HEIGHT * 0.55;
 
 interface ProfileViewProps {
   user: Doc<"users">;
+  distance?: number | null; // Distance in miles (optional)
 }
 
-export function ProfileView({ user }: ProfileViewProps) {
+export function ProfileView({ user, distance }: ProfileViewProps) {
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
@@ -108,14 +109,24 @@ export function ProfileView({ user }: ProfileViewProps) {
             <Text style={styles.name}>{user.name}</Text>
             <Text style={styles.age}>{user.age}</Text>
           </View>
-          {user.gender && (
-            <View style={styles.genderRow}>
-              <Text style={styles.genderIcon}>
-                {user.gender === "woman" ? "♀" : "♂"}
-              </Text>
-              <Text style={styles.genderText}>{user.gender}</Text>
-            </View>
-          )}
+          <View style={styles.infoRow}>
+            {user.gender && (
+              <View style={styles.genderRow}>
+                <Text style={styles.genderIcon}>
+                  {user.gender === "woman" ? "♀" : "♂"}
+                </Text>
+                <Text style={styles.genderText}>{user.gender}</Text>
+              </View>
+            )}
+            {distance !== undefined && distance !== null && (
+              <View style={styles.distanceRow}>
+                <Ionicons name="location-outline" size={14} color="rgba(255,255,255,0.9)" />
+                <Text style={styles.distanceText}>
+                  {distance < 1 ? "< 1" : Math.round(distance)} mi
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
       </View>
 
@@ -312,7 +323,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    marginTop: 4,
   },
   genderIcon: {
     fontSize: 16,
@@ -324,6 +334,25 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     opacity: 0.8,
     textTransform: "capitalize",
+    textShadowColor: "rgba(0,0,0,0.3)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+    marginTop: 4,
+  },
+  distanceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  distanceText: {
+    fontSize: 14,
+    color: "#FFFFFF",
+    opacity: 0.85,
     textShadowColor: "rgba(0,0,0,0.3)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,

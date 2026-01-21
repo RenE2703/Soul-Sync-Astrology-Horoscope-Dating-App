@@ -135,7 +135,7 @@ export default function DiscoverScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Profile View */}
-      <ProfileView key={currentProfile._id} user={currentProfile} />
+      <ProfileView key={currentProfile._id} user={currentProfile} distance={currentProfile.distance} />
 
       {/* Floating Action Buttons */}
       <FloatingActions

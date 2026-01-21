@@ -76,6 +76,13 @@ export const createProfile = internalMutation({
     interests: v.array(v.string()),
     photos: v.array(v.string()),
     embedding: v.array(v.float64()),
+    location: v.optional(
+      v.object({
+        latitude: v.number(),
+        longitude: v.number(),
+      })
+    ),
+    maxDistance: v.optional(v.number()),
   },
   handler: async (ctx, args): Promise<Id<"users">> => {
     const now = Date.now();
@@ -102,6 +109,13 @@ export const createProfileWithEmbedding = action({
     }),
     interests: v.array(v.string()),
     photos: v.array(v.string()),
+    location: v.optional(
+      v.object({
+        latitude: v.number(),
+        longitude: v.number(),
+      })
+    ),
+    maxDistance: v.optional(v.number()),
   },
   handler: async (ctx, args): Promise<Id<"users">> => {
     // Combine profile data for embedding
@@ -158,6 +172,13 @@ export const updateProfile = mutation({
     ),
     interests: v.optional(v.array(v.string())),
     photos: v.optional(v.array(v.string())),
+    location: v.optional(
+      v.object({
+        latitude: v.number(),
+        longitude: v.number(),
+      })
+    ),
+    maxDistance: v.optional(v.number()),
   },
   handler: async (ctx, args): Promise<void> => {
     const { id, ...updates } = args;

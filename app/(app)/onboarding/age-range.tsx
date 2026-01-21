@@ -34,7 +34,7 @@ export default function AgeRangeScreen() {
 
   const handleContinue = () => {
     router.push({
-      pathname: "/(app)/onboarding/bio",
+      pathname: "/(app)/onboarding/location",
       params: { ...params, ageRangeMin: minAge.toString(), ageRangeMax: maxAge.toString() },
     });
   };
