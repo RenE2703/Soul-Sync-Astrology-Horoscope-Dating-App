@@ -1,0 +1,287 @@
+================================================================================
+                        AI DATING APP - FEATURE LOG
+                           Expo SDK 54 Build
+================================================================================
+
+LAST UPDATED: 2026-01-20
+
+================================================================================
+                           SETUP INSTRUCTIONS
+================================================================================
+
+1. Create a Clerk account at https://dashboard.clerk.com
+   - Create a new application
+   - Copy the Publishable Key
+
+2. Run Convex setup:
+   $ npx convex dev
+   - Login to Convex when prompted
+   - Copy the deployment URL
+
+3. Create .env.local file with:
+   EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_xxxxx
+   EXPO_PUBLIC_CONVEX_URL=https://your-deployment.convex.cloud
+
+4. Set OpenAI API key in Convex Dashboard:
+   - Go to your Convex dashboard
+   - Navigate to Settings > Environment Variables
+   - Add OPENAI_API_KEY with your OpenAI key
+
+5. Create development build:
+   $ npx eas build --profile development --platform ios
+
+6. Install on device via Expo Orbit or QR code
+
+7. Seed demo profiles (run in Convex dashboard Functions tab):
+   seed:seedDemoProfiles
+
+================================================================================
+                              SDK 54 FEATURES
+================================================================================
+
+FEATURE: Native Tabs with Liquid Glass
+  Status: IMPLEMENTED
+  Description: Using expo-router/unstable-native-tabs for iOS 26 Liquid Glass
+  Components: NativeTabs, Icon (SF Symbols), Label, Badge
+  iOS 26 Features:
+    - Liquid Glass tab bar effect
+    - Minimize on scroll behavior (minimizeBehavior="onScrollDown")
+    - Dynamic color adaptation (DynamicColorIOS)
+  File: app/(app)/(tabs)/_layout.tsx
+
+FEATURE: Expo UI (SwiftUI Primitives)
+  Status: AVAILABLE (requires dev build)
+  Description: Native SwiftUI components via @expo/ui
+  Components: Host, VStack, HStack, Button, Text
+
+FEATURE: Material 3 Theming
+  Status: IMPLEMENTED
+  Description: Dynamic Material 3 colors via @pchmn/expo-material3-theme
+  Features:
+    - Light/dark mode support
+    - Dynamic color generation from seed color (#FF6B6B)
+    - Custom app colors (like, reject, match, accent)
+  File: lib/theme.ts
+
+FEATURE: Liquid Glass Effects
+  Status: IMPLEMENTED
+  Description: Frosted glass UI via expo-glass-effect
+  Usage: Profile cards, AI match cards, profile screen sections
+  Files:
+    - app/(app)/(tabs)/profile.tsx
+    - app/(app)/(tabs)/matches.tsx
+    - app/(app)/profile/[id].tsx
+
+FEATURE: Smooth Haptics
+  Status: IMPLEMENTED
+  Description: Tactile feedback via expo-haptics
+  Triggers:
+    - Swipe threshold reached: Medium impact (hapticSwipe)
+    - Like action: Medium impact (hapticLike)
+    - Reject action: Light impact (hapticReject)
+    - Match made: Success notification (hapticMatch)
+    - Message sent: Light impact (hapticMessageSent)
+    - Button press: Selection (hapticButtonPress)
+    - Tab selection: Selection (hapticTabPress)
+  File: lib/haptics.ts
+
+FEATURE: Reanimated v4
+  Status: IMPLEMENTED
+  Description: Using react-native-reanimated with new APIs
+  Features:
+    - scheduleOnRN (replaces deprecated runOnJS)
+    - Smooth gesture animations
+  File: components/cards/SwipeCard.tsx
+
+================================================================================
+                           AUTHENTICATION
+================================================================================
+
+FEATURE: Clerk Authentication
+  Status: IMPLEMENTED
+  Description: User auth via @clerk/clerk-expo
+  Features:
+    - Email/password sign up
+    - OAuth ready
+    - Secure token storage (expo-secure-store)
+    - Protected routes (Stack.Protected from expo-router)
+  Files:
+    - providers/ClerkProvider.tsx
+    - lib/auth.ts (token cache)
+    - app/_layout.tsx (protected routes)
+    - app/(auth)/sign-in.tsx
+    - app/(auth)/sign-up.tsx
+
+================================================================================
+                           MATCHING SYSTEM
+================================================================================
+
+FEATURE: User Preferences (Matching Criteria)
+  Status: IMPLEMENTED
+  Criteria collected during onboarding:
+    [x] Name
+    [x] Age
+    [x] Gender identity (man, woman, non-binary)
+    [x] Looking for (genders interested in)
+    [x] Age range preference (min/max)
+    [x] Interests/hobbies (tags)
+    [x] Bio/description
+    [x] Photos
+
+FEATURE: Swipe Matching (Tinder-style)
+  Status: IMPLEMENTED
+  Description: Like/reject via swipe gestures or tap buttons
+  Actions:
+    - Swipe right / tap heart = Like
+    - Swipe left / tap X = Reject
+  Match: Mutual likes create a match
+  Files:
+    - components/cards/SwipeCard.tsx
+    - components/cards/ActionButtons.tsx
+    - components/cards/MatchModal.tsx
+    - convex/swipes.ts
+
+FEATURE: AI Suggested Matches
+  Status: IMPLEMENTED
+  Description: Vector similarity + LLM explanations
+  Technology:
+    - OpenAI text-embedding-3-small for profile embeddings (1536 dims)
+    - Convex vector search for similarity matching
+    - GPT-4o-mini for match explanations
+  Algorithm:
+    1. Generate embedding from bio + interests
+    2. Vector search for similar profiles
+    3. Filter by preferences (gender, age range)
+    4. Exclude already-swiped profiles
+    5. Generate LLM explanations for matches
+  Files:
+    - convex/users.ts (embedding generation)
+    - convex/matches.ts (vector search, LLM explanations)
+
+================================================================================
+                              BACKEND
+================================================================================
+
+FEATURE: Convex Database
+  Status: IMPLEMENTED
+  Tables:
+    - users: profiles + embeddings (1536-dim vector)
+    - matches: mutual matches + AI explanations
+    - swipes: like/reject actions
+    - messages: chat history
+  File: convex/schema.ts
+
+FEATURE: Vector Search
+  Status: IMPLEMENTED
+  Description: Semantic similarity via Convex vector index
+  Index: users.by_embedding (1536 dimensions)
+  Filter fields: gender, age
+
+FEATURE: Real-time Chat
+  Status: IMPLEMENTED
+  Description: Live messaging via Convex subscriptions
+  Features:
+    - Real-time message updates
+    - Read receipts
+    - Unread count badges
+  Files:
+    - convex/messages.ts
+    - app/(app)/chat/[id].tsx
+    - components/chat/MessageBubble.tsx
+    - components/chat/ChatInput.tsx
+
+================================================================================
+                              SCREENS
+================================================================================
+
+SCREEN: Sign In
+  Status: IMPLEMENTED
+  File: app/(auth)/sign-in.tsx
+
+SCREEN: Sign Up  
+  Status: IMPLEMENTED
+  File: app/(auth)/sign-up.tsx
+
+SCREEN: Onboarding
+  Status: IMPLEMENTED
+  Steps:
+    1. Preferences (who you're interested in, age range)
+    2. Profile setup (name, age, bio, interests)
+    3. Complete (generate embedding via OpenAI)
+  Files:
+    - app/(auth)/onboarding/_layout.tsx
+    - app/(auth)/onboarding/preferences.tsx
+    - app/(auth)/onboarding/profile.tsx
+    - app/(auth)/onboarding/complete.tsx
+
+SCREEN: Discover (Swipe Feed)
+  Status: IMPLEMENTED
+  Features: 
+    - Card stack with gesture animations
+    - LIKE/NOPE stamps
+    - Haptic feedback
+    - Match modal on mutual like
+  File: app/(app)/(tabs)/index.tsx
+
+SCREEN: AI Matches
+  Status: IMPLEMENTED
+  Features: 
+    - Vector search results
+    - Compatibility scores
+    - LLM-generated explanations
+    - Liquid Glass cards
+  File: app/(app)/(tabs)/matches.tsx
+
+SCREEN: Chat List
+  Status: IMPLEMENTED
+  Features: 
+    - Conversations sorted by recent
+    - New matches section
+    - Unread badges
+  File: app/(app)/(tabs)/chat.tsx
+
+SCREEN: Chat Conversation
+  Status: IMPLEMENTED
+  Features: 
+    - Real-time messages
+    - Keyboard avoiding
+    - Auto-scroll to bottom
+  File: app/(app)/chat/[id].tsx
+
+SCREEN: Profile
+  Status: IMPLEMENTED
+  Features: 
+    - Profile display with Liquid Glass
+    - Stats (interests, photos count)
+    - Edit profile (UI ready)
+    - Sign out
+  File: app/(app)/(tabs)/profile.tsx
+
+SCREEN: Profile View (Modal)
+  Status: IMPLEMENTED
+  Features:
+    - Photo gallery
+    - Like/Reject buttons
+    - Liquid Glass overlay
+  File: app/(app)/profile/[id].tsx
+
+================================================================================
+                           DEMO DATA
+================================================================================
+
+FEATURE: Demo Profiles
+  Status: IMPLEMENTED
+  Description: 10 sample profiles for testing
+  Profiles: Sophia, Marcus, Luna, James, Aria, Ethan, Mia, Noah, Zoe, Alexander
+  File: convex/seed.ts
+  Usage: Run seed:seedDemoProfiles from Convex dashboard
+
+================================================================================
+                           CHANGELOG
+================================================================================
+
+[2026-01-20] Initial feature log created
+[2026-01-20] Phase 1 completed: Auth, Convex, Protected Routes
+[2026-01-20] Phase 2 completed: Core Screens (Discover, AI Matches, Chat)
+[2026-01-20] Phase 3 completed: Material 3 theming, Liquid Glass, Haptics
+[2026-01-20] Demo data seed script created
