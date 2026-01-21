@@ -10,9 +10,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { FloatingActions } from "@/components/cards/FloatingActions";
-import { MatchModal } from "@/components/cards/MatchModal";
-import { ProfileView } from "@/components/cards/ProfileView";
+import { MatchModal } from "@/components/matches";
+import { FloatingActions, ProfileView } from "@/components/profile";
 
 import { api } from "@/convex/_generated/api";
 import { Doc, Id } from "@/convex/_generated/dataModel";

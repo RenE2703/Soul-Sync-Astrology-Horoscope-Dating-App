@@ -6,19 +6,17 @@ import { useEffect, useRef } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Image,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { ChatInput } from "@/components/chat/ChatInput";
-import { MessageBubble } from "@/components/chat/MessageBubble";
-import { KeyboardAwareView } from "@/components/ui/KeyboardAwareView";
+import { ChatHeader, ChatInput, EmptyChatState, MessageList } from "@/components/chat";
+import { KeyboardAwareView } from "@/components/ui";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
+import { useOptimisticMessages } from "@/hooks/useOptimisticMessages";
 import { useAppTheme } from "@/lib/theme";
 
 export default function ChatScreen() {
@@ -43,16 +41,22 @@ export default function ChatScreen() {
   );
 
   // Get messages (real-time subscription)
-  const messages = useQuery(
+  const serverMessages = useQuery(
     api.messages.getMessages,
     matchId ? { matchId } : "skip"
   );
 
-  // Send message mutation
+  // Mutations
   const sendMessage = useMutation(api.messages.sendMessage);
-
-  // Mark messages as read
   const markAsRead = useMutation(api.messages.markAsRead);
+
+  // Optimistic messages hook
+  const { messages, handleSend, handleRetry } = useOptimisticMessages({
+    serverMessages,
+    matchId,
+    senderId: currentUser?._id,
+    sendMessage,
+  });
 
   // Get the other user
   const otherUser =
@@ -60,12 +64,16 @@ export default function ChatScreen() {
       ? matchDetails?.user2
       : matchDetails?.user1;
 
+  const imageUri =
+    otherUser?.photos?.[0] ||
+    `https://api.dicebear.com/7.x/avataaars/png?seed=${otherUser?.name || "user"}`;
+
   // Mark messages as read when viewing
   useEffect(() => {
     if (matchId && currentUser?._id) {
       markAsRead({ matchId, userId: currentUser._id });
     }
-  }, [matchId, currentUser?._id, messages?.length]);
+  }, [matchId, currentUser?._id, serverMessages?.length]);
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -76,26 +84,18 @@ export default function ChatScreen() {
     }
   }, [messages?.length]);
 
-  const handleSend = async (content: string) => {
-    if (!matchId || !currentUser?._id) return;
-
-    try {
-      await sendMessage({
-        matchId,
-        senderId: currentUser._id,
-        content,
-      });
-    } catch (error) {
-      console.error("Failed to send message:", error);
-    }
-  };
-
   // Show loading while data is fetching
-  const isLoading = currentUser === undefined || matchDetails === undefined || messages === undefined;
+  const isLoading =
+    currentUser === undefined ||
+    matchDetails === undefined ||
+    serverMessages === undefined;
 
-  const imageUri =
-    otherUser?.photos?.[0] ||
-    `https://api.dicebear.com/7.x/avataaars/png?seed=${otherUser?.name || "user"}`;
+  // Header back button component
+  const BackButton = (
+    <TouchableOpacity onPress={() => router.back()}>
+      <Ionicons name="chevron-back" size={28} color={colors.onBackground} />
+    </TouchableOpacity>
+  );
 
   // Loading state
   if (isLoading) {
@@ -105,18 +105,8 @@ export default function ChatScreen() {
           options={{
             headerShown: true,
             headerTitle: "",
-            headerLeft: () => (
-              <TouchableOpacity onPress={() => router.back()}>
-                <Ionicons
-                  name="chevron-back"
-                  size={28}
-                  color={colors.onBackground}
-                />
-              </TouchableOpacity>
-            ),
-            headerStyle: {
-              backgroundColor: colors.background,
-            },
+            headerLeft: () => BackButton,
+            headerStyle: { backgroundColor: colors.background },
             headerShadowVisible: false,
           }}
         />
@@ -138,25 +128,10 @@ export default function ChatScreen() {
         options={{
           headerShown: true,
           headerTitle: () => (
-            <View style={styles.headerTitle}>
-              <Image source={{ uri: imageUri }} style={styles.headerAvatar} />
-              <Text style={[styles.headerName, { color: colors.onBackground }]}>
-                {otherUser?.name || "Chat"}
-              </Text>
-            </View>
+            <ChatHeader name={otherUser?.name || "Chat"} imageUri={imageUri} />
           ),
-          headerLeft: () => (
-            <TouchableOpacity onPress={() => router.back()}>
-              <Ionicons
-                name="chevron-back"
-                size={28}
-                color={colors.onBackground}
-              />
-            </TouchableOpacity>
-          ),
-          headerStyle: {
-            backgroundColor: colors.background,
-          },
+          headerLeft: () => BackButton,
+          headerStyle: { backgroundColor: colors.background },
           headerShadowVisible: false,
         }}
       />
@@ -167,37 +142,16 @@ export default function ChatScreen() {
       >
         <KeyboardAwareView keyboardVerticalOffset={90}>
           {messages?.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <Image source={{ uri: imageUri }} style={styles.emptyAvatar} />
-              <Text style={[styles.emptyTitle, { color: colors.onBackground }]}>
-                You matched with {otherUser?.name}!
-              </Text>
-              <Text
-                style={[
-                  styles.emptySubtitle,
-                  { color: colors.onSurfaceVariant },
-                ]}
-              >
-                Say something nice to start the conversation
-              </Text>
-            </View>
+            <EmptyChatState
+              name={otherUser?.name || "your match"}
+              imageUri={imageUri}
+            />
           ) : (
-            <FlatList
+            <MessageList
               ref={flatListRef}
-              data={messages}
-              keyExtractor={(item) => item._id}
-              renderItem={({ item }) => (
-                <MessageBubble
-                  content={item.content}
-                  isOwn={item.senderId === currentUser?._id}
-                  timestamp={item.createdAt}
-                />
-              )}
-              contentContainerStyle={styles.messagesList}
-              showsVerticalScrollIndicator={false}
-              onContentSizeChange={() =>
-                flatListRef.current?.scrollToEnd({ animated: false })
-              }
+              messages={messages}
+              currentUserId={currentUser?._id}
+              onRetry={handleRetry}
             />
           )}
 
@@ -216,45 +170,5 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-  },
-  headerTitle: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  headerAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-  },
-  headerName: {
-    fontSize: 17,
-    fontWeight: "600",
-  },
-  messagesList: {
-    padding: 16,
-    paddingBottom: 8,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-  },
-  emptyAvatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    marginBottom: 8,
-    textAlign: "center",
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    textAlign: "center",
   },
 });

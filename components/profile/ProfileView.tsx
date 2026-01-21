@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { GlassNavButton } from "@/components/ui/GlassNavButton";
+import { GlassNavButton } from "@/components/glass";
 import { Doc } from "@/convex/_generated/dataModel";
 import { AdaptiveGlassView } from "@/lib/glass";
 import { useAppTheme } from "@/lib/theme";

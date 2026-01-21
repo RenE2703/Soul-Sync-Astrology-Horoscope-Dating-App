@@ -1,6 +1,6 @@
 import { Stack } from "expo-router";
 
-import { OnboardingHeader } from "@/components/ui/OnboardingHeader";
+import { OnboardingHeader } from "@/components/onboarding";
 import { useAppTheme } from "@/lib/theme";
 
 export default function OnboardingLayout() {

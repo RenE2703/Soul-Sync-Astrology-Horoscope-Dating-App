@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { KeyboardAwareView } from "@/components/ui/KeyboardAwareView";
+import { KeyboardAwareView } from "@/components/ui";
 import { hapticButtonPress } from "@/lib/haptics";
 import { useAppTheme } from "@/lib/theme";
 

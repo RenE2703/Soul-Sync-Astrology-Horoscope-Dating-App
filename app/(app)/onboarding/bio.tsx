@@ -7,9 +7,8 @@ import {
 } from "react-native";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 
-import { GlassButton } from "@/components/ui/GlassButton";
-import { GlassTextArea } from "@/components/ui/GlassTextArea";
-import { KeyboardAwareView } from "@/components/ui/KeyboardAwareView";
+import { GlassButton, GlassTextArea } from "@/components/glass";
+import { KeyboardAwareView } from "@/components/ui";
 import { useAppTheme } from "@/lib/theme";
 
 const MIN_BIO_LENGTH = 20;

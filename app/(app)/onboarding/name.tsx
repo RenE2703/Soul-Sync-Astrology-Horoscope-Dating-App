@@ -7,9 +7,8 @@ import {
 } from "react-native";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 
-import { GlassButton } from "@/components/ui/GlassButton";
-import { GlassInput } from "@/components/ui/GlassInput";
-import { KeyboardAwareView } from "@/components/ui/KeyboardAwareView";
+import { GlassButton, GlassInput } from "@/components/glass";
+import { KeyboardAwareView } from "@/components/ui";
 import { hapticButtonPress } from "@/lib/haptics";
 import { useAppTheme } from "@/lib/theme";
 

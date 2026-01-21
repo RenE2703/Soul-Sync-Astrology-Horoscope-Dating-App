@@ -16,10 +16,9 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { PhotoItem } from "@/components/PhotoItem";
-import { GlassCloseButton } from "@/components/ui/GlassCloseButton";
-import { GlassHeader } from "@/components/ui/GlassHeader";
-import { KeyboardAwareView } from "@/components/ui/KeyboardAwareView";
+import { GlassCloseButton, GlassHeader } from "@/components/glass";
+import { PhotoItem } from "@/components/profile";
+import { KeyboardAwareView } from "@/components/ui";
 import { api } from "@/convex/_generated/api";
 import { AdaptiveGlassView, supportsGlassEffect } from "@/lib/glass";
 import { hapticButtonPress, hapticSelection, hapticSuccess } from "@/lib/haptics";

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 
-import { GlassButton } from "@/components/ui/GlassButton";
+import { GlassButton } from "@/components/glass";
 import { hapticSelection } from "@/lib/haptics";
 import { useAppTheme } from "@/lib/theme";
 

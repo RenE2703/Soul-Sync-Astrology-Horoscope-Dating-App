@@ -14,10 +14,9 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { DailyPickCard } from "@/components/cards/DailyPickCard";
-import { MatchModal } from "@/components/cards/MatchModal";
-import { Countdown } from "@/components/ui/Countdown";
-import { GlassHeader } from "@/components/ui/GlassHeader";
+import { GlassHeader } from "@/components/glass";
+import { DailyPickCard, MatchModal } from "@/components/matches";
+import { Countdown } from "@/components/ui";
 
 import { api } from "@/convex/_generated/api";
 import { Doc, Id } from "@/convex/_generated/dataModel";

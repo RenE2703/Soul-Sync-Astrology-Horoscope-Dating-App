@@ -2,7 +2,7 @@ import { usePathname } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { GlassBackButton } from "@/components/ui/GlassBackButton";
+import { GlassBackButton } from "@/components/glass";
 import { useAppTheme } from "@/lib/theme";
 
 const STEPS = ["name", "birthday", "gender", "looking-for", "age-range", "bio", "interests", "photos", "complete"];

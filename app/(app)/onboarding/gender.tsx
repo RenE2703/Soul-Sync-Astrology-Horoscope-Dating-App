@@ -2,7 +2,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
-import { GlassOption } from "@/components/ui/GlassOption";
+import { GlassOption } from "@/components/glass";
 import { useAppTheme } from "@/lib/theme";
 
 const GENDERS = [

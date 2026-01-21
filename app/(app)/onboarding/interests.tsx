@@ -3,8 +3,7 @@ import { useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 
-import { GlassButton } from "@/components/ui/GlassButton";
-import { GlassChip } from "@/components/ui/GlassChip";
+import { GlassButton, GlassChip } from "@/components/glass";
 import { useAppTheme } from "@/lib/theme";
 
 const INTERESTS = [
