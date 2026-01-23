@@ -1,10 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
-import {
-  Icon,
-  Label,
-  NativeTabs,
-} from "expo-router/unstable-native-tabs";
+import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { DynamicColorIOS } from "react-native";
 
 import { supportsGlassEffect } from "@/lib/glass";
@@ -28,26 +24,35 @@ export default function TabLayout() {
       >
         {/* Discover / Swipe Feed */}
         <NativeTabs.Trigger name="index">
-          <Icon sf={{ default: "heart", selected: "heart.fill" }} />
-          <Label>Discover</Label>
+          <NativeTabs.Trigger.Label>Discover</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Icon
+            sf={{ default: "heart", selected: "heart.fill" }}
+            md="favorite"
+          />
         </NativeTabs.Trigger>
 
         {/* AI Suggested Matches */}
         <NativeTabs.Trigger name="matches">
-          <Icon sf={{ default: "sparkles", selected: "sparkles" }} />
-          <Label>AI Matches</Label>
+          <NativeTabs.Trigger.Label>AI Matches</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Icon sf="sparkles" md="auto_awesome" />
         </NativeTabs.Trigger>
 
         {/* Chat / Messages */}
         <NativeTabs.Trigger name="chat">
-          <Icon sf={{ default: "message", selected: "message.fill" }} />
-          <Label>Chat</Label>
+          <NativeTabs.Trigger.Label>Chat</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Icon
+            sf={{ default: "message", selected: "message.fill" }}
+            md="chat"
+          />
         </NativeTabs.Trigger>
 
         {/* Profile */}
         <NativeTabs.Trigger name="profile">
-          <Icon sf={{ default: "person", selected: "person.fill" }} />
-          <Label>Profile</Label>
+          <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Icon
+            sf={{ default: "person", selected: "person.fill" }}
+            md="person"
+          />
         </NativeTabs.Trigger>
       </NativeTabs>
     );

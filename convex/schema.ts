@@ -6,7 +6,8 @@ export default defineSchema({
   users: defineTable({
     clerkId: v.string(),
     name: v.string(),
-    age: v.number(),
+    dateOfBirth: v.optional(v.number()), // Unix timestamp of birth date (optional for legacy data)
+    age: v.number(), // Computed from dateOfBirth on write, or stored directly for legacy data
     gender: v.string(),
     bio: v.string(),
     lookingFor: v.array(v.string()), // Genders interested in

@@ -1,25 +1,24 @@
-import { useUser } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
 import { useAction, useQuery } from "convex/react";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Dimensions,
-    FlatList,
-    StyleSheet,
-    Text,
-    View,
-    ViewToken,
+  Dimensions,
+  FlatList,
+  StyleSheet,
+  Text,
+  View,
+  ViewToken,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { GlassHeader } from "@/components/glass";
 import { DailyPickCard, MatchModal } from "@/components/matches";
-import { Countdown } from "@/components/ui";
+import { Countdown, EmptyState, LoadingScreen } from "@/components/ui";
 
 import { api } from "@/convex/_generated/api";
 import { Doc, Id } from "@/convex/_generated/dataModel";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { AdaptiveGlassView } from "@/lib/glass";
 import { useAppTheme } from "@/lib/theme";
 
@@ -47,14 +46,8 @@ interface DailyPicksData {
 
 export default function DailyPicksScreen() {
   const { colors } = useAppTheme();
-  const { user: clerkUser } = useUser();
+  const { currentUser } = useCurrentUser();
   const router = useRouter();
-
-  // Get current user
-  const currentUser = useQuery(
-    api.users.getByClerkId,
-    clerkUser?.id ? { clerkId: clerkUser.id } : "skip"
-  );
 
   // Get daily picks
   const dailyPicks = useQuery(
@@ -181,16 +174,9 @@ export default function DailyPicksScreen() {
   // Loading state
   if (currentUser === undefined || dailyPicks === undefined || isGenerating) {
     return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-      >
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.loadingText, { color: colors.onSurfaceVariant }]}>
-            {isGenerating ? "Finding your perfect matches..." : "Loading..."}
-          </Text>
-        </View>
-      </SafeAreaView>
+      <LoadingScreen
+        message={isGenerating ? "Finding your perfect matches..." : "Loading..."}
+      />
     );
   }
 
@@ -245,17 +231,11 @@ export default function DailyPicksScreen() {
           subtitle={SubtitleContent}
           rightContent={TimerContent}
         />
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyEmoji}>🔮</Text>
-          <Text style={[styles.emptyTitle, { color: colors.onBackground }]}>
-            No picks yet
-          </Text>
-          <Text
-            style={[styles.emptySubtitle, { color: colors.onSurfaceVariant }]}
-          >
-            {"We're still finding the perfect matches for you. Check back soon!"}
-          </Text>
-        </View>
+        <EmptyState
+          icon="sparkles-outline"
+          title="No picks yet"
+          subtitle="We're still finding the perfect matches for you. Check back soon!"
+        />
       </SafeAreaView>
     );
   }
@@ -272,16 +252,11 @@ export default function DailyPicksScreen() {
           subtitle={SubtitleContent}
           rightContent={TimerContent}
         />
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyEmoji}>✨</Text>
-          <Text style={[styles.emptyTitle, { color: colors.onBackground }]}>
-            {"You've seen today's picks!"}
-          </Text>
-          <Text
-            style={[styles.emptySubtitle, { color: colors.onSurfaceVariant }]}
-          >
-            Come back tomorrow for 3 new AI-curated matches
-          </Text>
+        <EmptyState
+          icon="checkmark-circle-outline"
+          title="You've seen today's picks!"
+          subtitle="Come back tomorrow for 3 new AI-curated matches"
+        >
           {dailyPicks?.expiresAt && (
             <View style={styles.countdownContainer}>
               <AdaptiveGlassView style={styles.countdownBadge}>
@@ -297,7 +272,7 @@ export default function DailyPicksScreen() {
               </AdaptiveGlassView>
             </View>
           )}
-        </View>
+        </EmptyState>
       </SafeAreaView>
     );
   }
@@ -391,37 +366,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600",
     color: "#FFFFFF",
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 16,
-  },
-  loadingText: {
-    fontSize: 16,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-  },
-  emptyEmoji: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 24,
-    fontWeight: "700",
-    marginBottom: 8,
-    textAlign: "center",
-  },
-  emptySubtitle: {
-    fontSize: 16,
-    textAlign: "center",
-    lineHeight: 24,
-    maxWidth: 280,
   },
   countdownContainer: {
     marginTop: 24,

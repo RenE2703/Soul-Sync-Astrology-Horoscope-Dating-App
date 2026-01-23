@@ -1,25 +1,25 @@
-import { useAuth, useUser } from "@clerk/clerk-expo";
+import { useAuth } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery } from "convex/react";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    Alert,
-    Dimensions,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  Dimensions,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { PhotoItem } from "@/components/profile";
-import { api } from "@/convex/_generated/api";
-import { AdaptiveGlassView, supportsGlassEffect } from "@/lib/glass";
 import { GlassNavButton } from "@/components/glass";
+import { PhotoItem } from "@/components/profile";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { AdaptiveGlassView, supportsGlassEffect } from "@/lib/glass";
 import { hapticButtonPress } from "@/lib/haptics";
+import { useReverseGeocode } from "@/lib/location";
 import { AppColors, useAppTheme } from "@/lib/theme";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -28,15 +28,13 @@ const PHOTO_HEIGHT = SCREEN_HEIGHT * 0.55;
 export default function ProfileScreen() {
   const { colors } = useAppTheme();
   const { signOut } = useAuth();
-  const { user: clerkUser } = useUser();
+  const { currentUser: profile, clerkUser } = useCurrentUser();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
 
-  const profile = useQuery(
-    api.users.getByClerkId,
-    clerkUser?.id ? { clerkId: clerkUser.id } : "skip"
-  );
+  // Get city name from coordinates
+  const { locationInfo } = useReverseGeocode(profile?.location);
 
   const handleSignOut = () => {
     hapticButtonPress();
@@ -168,31 +166,36 @@ export default function ProfileScreen() {
                 <Text style={styles.genderText}>{profile.gender}</Text>
               </View>
             )}
+            {locationInfo?.displayName && (
+              <View style={styles.locationRow}>
+                <Ionicons name="location" size={14} color="#FFFFFF" style={styles.locationIcon} />
+                <Text style={styles.locationText}>{locationInfo.displayName}</Text>
+              </View>
+            )}
           </View>
 
+          {/* Floating Edit Button - Inside photo section for proper scrolling */}
+          <TouchableOpacity
+            style={styles.editButton}
+            onPress={handleEdit}
+            activeOpacity={0.9}
+          >
+            {supportsGlassEffect ? (
+              <AdaptiveGlassView style={styles.editButtonGlass} tintColor={colors.primary}>
+                <Ionicons name="pencil" size={28} color="#FFFFFF" />
+              </AdaptiveGlassView>
+            ) : (
+              <LinearGradient
+                colors={[AppColors.primary, "#FF4458"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[styles.editButtonGlass, styles.editButtonFallback]}
+              >
+                <Ionicons name="pencil" size={28} color="#FFFFFF" />
+              </LinearGradient>
+            )}
+          </TouchableOpacity>
         </View>
-
-        {/* Floating Edit Button - Overlaps photo and content */}
-        <TouchableOpacity
-          style={styles.editButton}
-          onPress={handleEdit}
-          activeOpacity={0.9}
-        >
-          {supportsGlassEffect ? (
-            <AdaptiveGlassView style={styles.editButtonGlass} tintColor={colors.primary}>
-              <Ionicons name="pencil" size={28} color="#FFFFFF" />
-            </AdaptiveGlassView>
-          ) : (
-            <LinearGradient
-              colors={[AppColors.primary, "#FF4458"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={[styles.editButtonGlass, styles.editButtonFallback]}
-            >
-              <Ionicons name="pencil" size={28} color="#FFFFFF" />
-            </LinearGradient>
-          )}
-        </TouchableOpacity>
 
         {/* Photo Gallery */}
         {photos.length > 1 && (
@@ -322,6 +325,7 @@ const styles = StyleSheet.create({
     width: SCREEN_WIDTH,
     height: PHOTO_HEIGHT,
     position: "relative",
+    overflow: "visible", // Allow edit button to extend beyond bounds
   },
   photo: {
     width: "100%",
@@ -431,9 +435,27 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
+  locationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
+  },
+  locationIcon: {
+    opacity: 0.9,
+    marginRight: 4,
+  },
+  locationText: {
+    fontSize: 14,
+    color: "#FFFFFF",
+    opacity: 0.85,
+    fontWeight: "500",
+    textShadowColor: "rgba(0,0,0,0.3)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
   editButton: {
     position: "absolute",
-    top: PHOTO_HEIGHT - 32, // Half of button height to overlap
+    bottom: -32, // Half of button height to overlap below photo section
     right: 24,
     zIndex: 10,
     // Outer glow for visibility

@@ -1,30 +1,26 @@
-import { useUser } from "@clerk/clerk-expo";
 import { useQuery } from "convex/react";
 import { useRouter } from "expo-router";
 import {
-    FlatList,
-    Image,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  FlatList,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { EmptyState } from "@/components/ui";
+
 import { api } from "@/convex/_generated/api";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { hapticButtonPress } from "@/lib/haptics";
 import { useAppTheme } from "@/lib/theme";
 
 export default function ChatListScreen() {
   const { colors } = useAppTheme();
-  const { user: clerkUser } = useUser();
+  const { currentUser } = useCurrentUser();
   const router = useRouter();
-
-  // Get current user
-  const currentUser = useQuery(
-    api.users.getByClerkId,
-    clerkUser?.id ? { clerkId: clerkUser.id } : "skip"
-  );
 
   // Get matches with last message
   const matchesWithMessages = useQuery(
@@ -162,17 +158,11 @@ export default function ChatListScreen() {
       </View>
 
       {matchesWithMessages?.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyEmoji}>💬</Text>
-          <Text style={[styles.emptyTitle, { color: colors.onBackground }]}>
-            No messages yet
-          </Text>
-          <Text
-            style={[styles.emptySubtitle, { color: colors.onSurfaceVariant }]}
-          >
-            Start swiping to find your match!
-          </Text>
-        </View>
+        <EmptyState
+          icon="chatbubbles-outline"
+          title="No messages yet"
+          subtitle="Start swiping to find your match!"
+        />
       ) : (
         <FlatList
           data={conversations}
@@ -278,24 +268,5 @@ const styles = StyleSheet.create({
   },
   chatPreview: {
     fontSize: 14,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-  },
-  emptyEmoji: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 24,
-    fontWeight: "700",
-    marginBottom: 8,
-  },
-  emptySubtitle: {
-    fontSize: 16,
-    textAlign: "center",
   },
 });

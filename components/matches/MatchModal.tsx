@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { useEffect } from "react";
 import {
@@ -19,6 +20,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { Doc } from "@/convex/_generated/dataModel";
+import { AppColors } from "@/lib/theme";
 import { hapticMatch } from "@/lib/haptics";
 import { useAppTheme } from "@/lib/theme";
 
@@ -91,7 +93,7 @@ export function MatchModal({
         <BlurView intensity={80} style={styles.blur} tint="dark">
           <Animated.View style={[styles.content, contentStyle]}>
             {/* Match text */}
-            <Text style={styles.matchText}>It's a Match! 🎉</Text>
+            <Text style={styles.matchText}>It's a Match!</Text>
             <Text style={styles.subText}>
               You and {matchedUser.name} liked each other
             </Text>
@@ -106,7 +108,7 @@ export function MatchModal({
               </View>
 
               <Animated.View style={[styles.heartContainer, heartStyle]}>
-                <Text style={styles.heart}>❤️</Text>
+                <Ionicons name="heart" size={32} color={AppColors.match} />
               </Animated.View>
 
               <View style={styles.profileContainer}>
@@ -209,9 +211,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
-  },
-  heart: {
-    fontSize: 32,
   },
   actions: {
     width: "100%",

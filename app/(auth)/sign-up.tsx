@@ -7,7 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CodeVerification } from "@/components/auth";
 import { GlassBackButton, GlassButton, GlassInput } from "@/components/glass";
-import { KeyboardAwareView } from "@/components/ui";
+import { HeaderIcon, KeyboardAwareView } from "@/components/ui";
 import { hapticButtonPress } from "@/lib/haptics";
 import { useAppTheme } from "@/lib/theme";
 
@@ -61,7 +61,7 @@ export default function SignUpScreen() {
       <CodeVerification
         email={email}
         title="Verify your email"
-        emoji="✉️"
+        icon="mail-outline"
         onVerify={handleVerify}
         onBack={() => setPendingVerification(false)}
         buttonText="Verify Email"
@@ -83,7 +83,7 @@ export default function SignUpScreen() {
       <KeyboardAwareView style={styles.keyboardView}>
         <View style={styles.content}>
           <Animated.View entering={FadeInDown.delay(100).duration(500)} style={styles.header}>
-            <Text style={styles.emoji}>🎉</Text>
+            <HeaderIcon icon="rocket-outline" />
             <Text style={[styles.title, { color: colors.onBackground }]}>
               Create account
             </Text>
@@ -161,10 +161,6 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: 40,
-  },
-  emoji: {
-    fontSize: 48,
-    marginBottom: 16,
   },
   title: {
     fontSize: 32,

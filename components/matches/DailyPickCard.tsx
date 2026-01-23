@@ -11,11 +11,11 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
-import { hapticButtonPress } from "@/lib/haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { PhotoIndicators, PhotoTapZones } from "@/components/ui";
 import { Doc } from "@/convex/_generated/dataModel";
+import { hapticButtonPress } from "@/lib/haptics";
 import { useAppTheme } from "@/lib/theme";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -73,40 +73,16 @@ export function DailyPickCard({
           {/* Photo with gradient */}
           <View style={styles.photoContainer}>
             <Image source={{ uri: currentPhoto }} style={styles.photo} />
-            
+
             {/* Photo indicators */}
-            {photos.length > 1 && (
-              <View style={styles.photoIndicators}>
-                {photos.map((_, index) => (
-                  <View
-                    key={index}
-                    style={[
-                      styles.indicator,
-                      {
-                        backgroundColor:
-                          index === currentPhotoIndex
-                            ? "#FFFFFF"
-                            : "rgba(255,255,255,0.4)",
-                      },
-                    ]}
-                  />
-                ))}
-              </View>
-            )}
+            <PhotoIndicators
+              count={photos.length}
+              currentIndex={currentPhotoIndex}
+              style={{ top: 12 }}
+            />
 
             {/* Tap zones */}
-            <View style={styles.tapZones}>
-              <TouchableOpacity
-                style={styles.tapZone}
-                onPress={() => handlePhotoTap("left")}
-                activeOpacity={1}
-              />
-              <TouchableOpacity
-                style={styles.tapZone}
-                onPress={() => handlePhotoTap("right")}
-                activeOpacity={1}
-              />
-            </View>
+            <PhotoTapZones onTap={handlePhotoTap} />
 
             {/* Gradient overlay */}
             <LinearGradient
@@ -213,11 +189,11 @@ export function DailyPickCard({
               INTERESTS
             </Text>
             <View style={styles.interestsGrid}>
-              {user.interests.map((interest) => {
+              {user.interests.map((interest, index) => {
                 const isShared = sharedInterests.includes(interest);
                 return (
                   <View
-                    key={interest}
+                    key={`${interest}-${index}`}
                     style={[
                       styles.interestChip,
                       { 
@@ -298,30 +274,6 @@ const styles = StyleSheet.create({
   photo: {
     width: "100%",
     height: "100%",
-  },
-  photoIndicators: {
-    position: "absolute",
-    top: 12,
-    left: 12,
-    right: 12,
-    flexDirection: "row",
-    gap: 4,
-  },
-  indicator: {
-    flex: 1,
-    height: 3,
-    borderRadius: 2,
-  },
-  tapZones: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    flexDirection: "row",
-  },
-  tapZone: {
-    flex: 1,
   },
   photoGradient: {
     position: "absolute",

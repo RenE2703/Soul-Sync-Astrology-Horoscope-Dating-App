@@ -2,20 +2,16 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
-import { GlassOption } from "@/components/glass";
+import { GenderSelector } from "@/components/preferences";
+import { type Gender } from "@/lib/constants/preferences";
 import { useAppTheme } from "@/lib/theme";
-
-const GENDERS = [
-  { value: "woman", label: "Woman", icon: "♀" },
-  { value: "man", label: "Man", icon: "♂" },
-];
 
 export default function GenderScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { colors } = useAppTheme();
 
-  const handleSelect = (value: string) => {
+  const handleSelect = (value: Gender) => {
     router.push({
       pathname: "/(app)/onboarding/looking-for",
       params: { ...params, gender: value },
@@ -31,17 +27,7 @@ export default function GenderScreen() {
           <Text style={[styles.subtitle, { color: colors.onSurfaceVariant }]}>Select your gender identity</Text>
         </Animated.View>
 
-        <View style={styles.optionsContainer}>
-          {GENDERS.map((g, index) => (
-            <Animated.View key={g.value} entering={FadeInDown.delay(200 + index * 100).duration(500)}>
-              <GlassOption
-                icon={g.icon}
-                label={g.label}
-                onPress={() => handleSelect(g.value)}
-              />
-            </Animated.View>
-          ))}
-        </View>
+        <GenderSelector onChange={handleSelect} />
       </View>
     </View>
   );
@@ -54,5 +40,4 @@ const styles = StyleSheet.create({
   emoji: { fontSize: 48, marginBottom: 16 },
   title: { fontSize: 32, fontWeight: "700", marginBottom: 8, letterSpacing: -0.5 },
   subtitle: { fontSize: 17, lineHeight: 24 },
-  optionsContainer: { gap: 16 },
 });

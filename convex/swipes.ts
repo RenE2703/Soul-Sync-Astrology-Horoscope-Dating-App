@@ -1,8 +1,57 @@
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
-import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
-import { getDistanceBetweenUsers, isWithinDistance } from "./lib/distance";
+import {
+  internalMutation,
+  internalQuery,
+  mutation,
+  MutationCtx,
+  query,
+} from "./_generated/server";
+import { areUsersCompatible } from "./lib/compatibility";
+import { getDistanceBetweenUsers } from "./lib/distance";
 import { withResolvedPhotos, withResolvedPhotosArray } from "./lib/photos";
+
+// Helper function to create a swipe and check for mutual match
+// Used by both createSwipe and createSwipeInternal to avoid code duplication
+async function createSwipeAndCheckMatch(
+  ctx: MutationCtx,
+  args: {
+    swiperId: Id<"users">;
+    swipedId: Id<"users">;
+    action: "like" | "reject";
+  },
+): Promise<{ matched: boolean; matchId: Id<"matches"> | null }> {
+  // Create the swipe
+  await ctx.db.insert("swipes", {
+    swiperId: args.swiperId,
+    swipedId: args.swipedId,
+    action: args.action,
+    createdAt: Date.now(),
+  });
+
+  // If it's a like, check for mutual match
+  if (args.action === "like") {
+    const reverseSwipe = await ctx.db
+      .query("swipes")
+      .withIndex("by_swiper_and_swiped", (q) =>
+        q.eq("swiperId", args.swipedId).eq("swipedId", args.swiperId),
+      )
+      .first();
+
+    if (reverseSwipe && reverseSwipe.action === "like") {
+      // It's a match! Create match record using internal mutation
+      const matchId = await ctx.runMutation(internal.matches.createMatch, {
+        user1Id: args.swiperId,
+        user2Id: args.swipedId,
+      });
+
+      return { matched: true, matchId };
+    }
+  }
+
+  return { matched: false, matchId: null };
+}
 
 // Get a specific swipe (internal)
 export const getSwipe = internalQuery({
@@ -11,7 +60,7 @@ export const getSwipe = internalQuery({
     return await ctx.db
       .query("swipes")
       .withIndex("by_swiper_and_swiped", (q) =>
-        q.eq("swiperId", args.swiperId).eq("swipedId", args.swipedId)
+        q.eq("swiperId", args.swiperId).eq("swipedId", args.swipedId),
       )
       .first();
   },
@@ -26,13 +75,13 @@ export const createSwipe = mutation({
   },
   handler: async (
     ctx,
-    args
+    args,
   ): Promise<{ matched: boolean; matchId?: Id<"matches"> }> => {
-    // Check if swipe already exists
+    // Check if swipe already exists (throw for public API)
     const existingSwipe = await ctx.db
       .query("swipes")
       .withIndex("by_swiper_and_swiped", (q) =>
-        q.eq("swiperId", args.swiperId).eq("swipedId", args.swipedId)
+        q.eq("swiperId", args.swiperId).eq("swipedId", args.swipedId),
       )
       .first();
 
@@ -40,36 +89,12 @@ export const createSwipe = mutation({
       throw new Error("Already swiped on this user");
     }
 
-    // Create the swipe
-    await ctx.db.insert("swipes", {
-      swiperId: args.swiperId,
-      swipedId: args.swipedId,
-      action: args.action,
-      createdAt: Date.now(),
-    });
-
-    // If it's a like, check for mutual match
-    if (args.action === "like") {
-      const reverseSwipe = await ctx.db
-        .query("swipes")
-        .withIndex("by_swiper_and_swiped", (q) =>
-          q.eq("swiperId", args.swipedId).eq("swipedId", args.swiperId)
-        )
-        .first();
-
-      if (reverseSwipe && reverseSwipe.action === "like") {
-        // It's a match! Create match record
-        const matchId = await ctx.db.insert("matches", {
-          user1Id: args.swiperId,
-          user2Id: args.swipedId,
-          matchedAt: Date.now(),
-        });
-
-        return { matched: true, matchId };
-      }
-    }
-
-    return { matched: false };
+    // Delegate to shared helper
+    const result = await createSwipeAndCheckMatch(ctx, args);
+    return {
+      matched: result.matched,
+      matchId: result.matchId ?? undefined,
+    };
   },
 });
 
@@ -90,7 +115,7 @@ export const getLikesReceived = query({
       const ourSwipe = await ctx.db
         .query("swipes")
         .withIndex("by_swiper_and_swiped", (q) =>
-          q.eq("swiperId", args.userId).eq("swipedId", like.swiperId)
+          q.eq("swiperId", args.userId).eq("swipedId", like.swiperId),
         )
         .first();
 
@@ -109,6 +134,9 @@ export const getLikesReceived = query({
 });
 
 // Get users to show in swipe feed (haven't been swiped on yet)
+// Only fetches a small batch of candidates for efficiency
+const FEED_BATCH_SIZE = 5;
+
 export const getSwipeFeed = query({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
@@ -123,54 +151,49 @@ export const getSwipeFeed = query({
 
     const swipedIds = new Set(ourSwipes.map((s) => s.swipedId));
 
-    // Get potential matches
-    const allUsers = await ctx.db.query("users").collect();
+    // Stream through users and collect candidates until we have enough
+    // This avoids loading all users into memory at once
+    const candidates: { user: typeof currentUser; distance: number }[] = [];
 
-    const potentialMatches = allUsers.filter((user) => {
+    for await (const user of ctx.db.query("users")) {
       // Skip self
-      if (user._id === args.userId) return false;
+      if (user._id === args.userId) continue;
 
       // Skip already swiped
-      if (swipedIds.has(user._id)) return false;
+      if (swipedIds.has(user._id)) continue;
 
-      // Check gender preferences
-      if (!currentUser.lookingFor.includes(user.gender)) return false;
-      if (!user.lookingFor.includes(currentUser.gender)) return false;
+      // Check compatibility (gender, age, distance preferences)
+      if (!areUsersCompatible(currentUser, user)) continue;
 
-      // Check age preferences
-      if (
-        user.age < currentUser.ageRange.min ||
-        user.age > currentUser.ageRange.max
-      )
-        return false;
-      if (
-        currentUser.age < user.ageRange.min ||
-        currentUser.age > user.ageRange.max
-      )
-        return false;
+      // Calculate distance for sorting
+      const distance =
+        getDistanceBetweenUsers(currentUser.location, user.location) ??
+        Infinity;
 
-      // Check distance preferences (bidirectional)
-      if (!isWithinDistance(currentUser.location, user.location, currentUser.maxDistance)) {
-        return false;
+      // Add to candidates, keeping sorted by distance
+      candidates.push({ user, distance });
+
+      // Keep only the closest candidates
+      if (candidates.length > FEED_BATCH_SIZE * 2) {
+        candidates.sort((a, b) => a.distance - b.distance);
+        candidates.length = FEED_BATCH_SIZE;
       }
-      if (!isWithinDistance(user.location, currentUser.location, user.maxDistance)) {
-        return false;
-      }
+    }
 
-      return true;
-    });
+    // Final sort and trim
+    candidates.sort((a, b) => a.distance - b.distance);
+    const topCandidates = candidates.slice(0, FEED_BATCH_SIZE);
 
-    // Shuffle and return top 20
-    const shuffled = potentialMatches.sort(() => Math.random() - 0.5);
-    const topMatches = shuffled.slice(0, 20);
-    
-    // Resolve photo URLs for all users
-    const usersWithPhotos = await withResolvedPhotosArray(ctx, topMatches);
-    
+    // Resolve photo URLs only for the candidates we're returning
+    const usersWithPhotos = await withResolvedPhotosArray(
+      ctx,
+      topCandidates.map((c) => c.user),
+    );
+
     // Add distance to each user
-    return usersWithPhotos.map((user) => ({
+    return usersWithPhotos.map((user, index) => ({
       ...user,
-      distance: getDistanceBetweenUsers(currentUser.location, user.location),
+      distance: topCandidates[index].distance,
     }));
   },
 });
@@ -184,13 +207,13 @@ export const createSwipeInternal = internalMutation({
   },
   handler: async (
     ctx,
-    args
+    args,
   ): Promise<{ matched: boolean; matchId: Id<"matches"> | null }> => {
-    // Check if swipe already exists
+    // Check if swipe already exists (return quietly for internal use)
     const existingSwipe = await ctx.db
       .query("swipes")
       .withIndex("by_swiper_and_swiped", (q) =>
-        q.eq("swiperId", args.swiperId).eq("swipedId", args.swipedId)
+        q.eq("swiperId", args.swiperId).eq("swipedId", args.swipedId),
       )
       .first();
 
@@ -199,35 +222,7 @@ export const createSwipeInternal = internalMutation({
       return { matched: false, matchId: null };
     }
 
-    // Create the swipe
-    await ctx.db.insert("swipes", {
-      swiperId: args.swiperId,
-      swipedId: args.swipedId,
-      action: args.action,
-      createdAt: Date.now(),
-    });
-
-    // If it's a like, check for mutual match
-    if (args.action === "like") {
-      const reverseSwipe = await ctx.db
-        .query("swipes")
-        .withIndex("by_swiper_and_swiped", (q) =>
-          q.eq("swiperId", args.swipedId).eq("swipedId", args.swiperId)
-        )
-        .first();
-
-      if (reverseSwipe && reverseSwipe.action === "like") {
-        // It's a match! Create match record
-        const matchId = await ctx.db.insert("matches", {
-          user1Id: args.swiperId,
-          user2Id: args.swipedId,
-          matchedAt: Date.now(),
-        });
-
-        return { matched: true, matchId };
-      }
-    }
-
-    return { matched: false, matchId: null };
+    // Delegate to shared helper
+    return await createSwipeAndCheckMatch(ctx, args);
   },
 });

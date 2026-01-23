@@ -1,4 +1,3 @@
-import { useUser } from "@clerk/clerk-expo";
 import { Ionicons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import { useMutation, useQuery } from "convex/react";
@@ -7,23 +6,41 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Stack, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { GlassCloseButton, GlassHeader } from "@/components/glass";
+import { GlassCloseButton, GlassHeader, GlassOption } from "@/components/glass";
+import {
+  DateOfBirthPicker,
+  calculateAgeFromDate,
+  getDefaultDateOfBirth,
+} from "@/components/preferences";
 import { PhotoItem } from "@/components/profile";
 import { KeyboardAwareView } from "@/components/ui";
 import { api } from "@/convex/_generated/api";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import {
+  GENDERS,
+  LOOKING_FOR_OPTIONS,
+  arrayToLookingFor,
+  lookingForToArray,
+  type Gender,
+  type LookingForOption,
+} from "@/lib/constants/preferences";
 import { AdaptiveGlassView, supportsGlassEffect } from "@/lib/glass";
 import { hapticButtonPress, hapticSelection, hapticSuccess } from "@/lib/haptics";
-import { requestAndGetLocation } from "@/lib/location";
+import {
+  requestAndGetLocation,
+  useReverseGeocode,
+  type LocationInfo,
+} from "@/lib/location";
 import { AppColors, useAppTheme } from "@/lib/theme";
 
 const INTERESTS = [
@@ -63,13 +80,13 @@ interface PhotoEntry {
 export default function EditProfileScreen() {
   const router = useRouter();
   const { colors } = useAppTheme();
-  const { user: clerkUser } = useUser();
+  const { clerkUser } = useCurrentUser();
   const insets = useSafeAreaInsets();
 
   // Use raw query to get storage IDs instead of resolved URLs
   const profile = useQuery(
     api.users.getByClerkIdRaw,
-    clerkUser?.id ? { clerkId: clerkUser.id } : "skip"
+    clerkUser?.id ? { clerkId: clerkUser.id } : "skip",
   );
 
   const updateProfile = useMutation(api.users.updateProfile);
@@ -81,10 +98,20 @@ export default function EditProfileScreen() {
   const [photos, setPhotos] = useState<PhotoEntry[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   
+  // Dating preferences state
+  const [dateOfBirth, setDateOfBirth] = useState<Date>(getDefaultDateOfBirth());
+  const [gender, setGender] = useState<Gender>("woman");
+  const [lookingFor, setLookingFor] = useState<LookingForOption>("everyone");
+  
   // Location state - use index for slider, derive actual value
   const [distanceIndex, setDistanceIndex] = useState(1); // Default to 25 miles (index 1)
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [locationInfoOverride, setLocationInfoOverride] = useState<LocationInfo | null>(null);
   const [isUpdatingLocation, setIsUpdatingLocation] = useState(false);
+
+  // Reverse geocode the location - use override if freshly updated, otherwise use hook
+  const { locationInfo: geocodedInfo } = useReverseGeocode(locationInfoOverride ? null : location);
+  const locationInfo = locationInfoOverride || geocodedInfo;
 
   const maxDistance = DISTANCE_STEPS[distanceIndex];
 
@@ -100,6 +127,21 @@ export default function EditProfileScreen() {
           isNew: false,
         }))
       );
+      // Dating preferences
+      if (profile.dateOfBirth) {
+        setDateOfBirth(new Date(profile.dateOfBirth));
+      } else if (profile.age) {
+        // Compute approximate dateOfBirth from age for legacy data
+        const approxDob = new Date();
+        approxDob.setFullYear(approxDob.getFullYear() - profile.age);
+        setDateOfBirth(approxDob);
+      }
+      if (profile.gender) {
+        setGender(profile.gender as Gender);
+      }
+      if (profile.lookingFor) {
+        setLookingFor(arrayToLookingFor(profile.lookingFor));
+      }
       // Location settings - convert saved value to index
       setDistanceIndex(getDistanceIndex(profile.maxDistance));
       setLocation(profile.location ?? null);
@@ -187,6 +229,9 @@ export default function EditProfileScreen() {
         id: profile._id,
         name,
         bio,
+        dateOfBirth: dateOfBirth.getTime(),
+        gender,
+        lookingFor: lookingForToArray(lookingFor),
         interests,
         photos: photoIds,
         maxDistance,
@@ -215,6 +260,7 @@ export default function EditProfileScreen() {
       const result = await requestAndGetLocation();
       if (result.location) {
         setLocation(result.location);
+        setLocationInfoOverride(result.locationInfo);
         hapticSuccess();
       }
     } catch (error) {
@@ -333,6 +379,51 @@ export default function EditProfileScreen() {
               </AdaptiveGlassView>
             </View>
 
+            {/* Date of Birth Section */}
+            <View style={styles.section}>
+              <Text style={[styles.sectionLabel, { color: colors.onSurfaceVariant }]}>
+                DATE OF BIRTH ({calculateAgeFromDate(dateOfBirth)} years old)
+              </Text>
+              <DateOfBirthPicker 
+                value={dateOfBirth} 
+                onChange={setDateOfBirth} 
+                showAgeCard={false}
+              />
+            </View>
+
+            {/* Gender Section */}
+            <View style={styles.section}>
+              <Text style={[styles.sectionLabel, { color: colors.onSurfaceVariant }]}>I AM A</Text>
+              <View style={styles.optionsRow}>
+                {GENDERS.map((g) => (
+                  <View key={g.value} style={styles.optionHalf}>
+                    <GlassOption
+                      icon={g.icon}
+                      label={g.label}
+                      onPress={() => setGender(g.value)}
+                      selected={gender === g.value}
+                    />
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            {/* Looking For Section */}
+            <View style={styles.section}>
+              <Text style={[styles.sectionLabel, { color: colors.onSurfaceVariant }]}>INTERESTED IN</Text>
+              <View style={styles.optionsColumn}>
+                {LOOKING_FOR_OPTIONS.map((option) => (
+                  <GlassOption
+                    key={option.value}
+                    icon={option.icon}
+                    label={option.label}
+                    onPress={() => setLookingFor(option.value)}
+                    selected={lookingFor === option.value}
+                  />
+                ))}
+              </View>
+            </View>
+
             {/* Interests Section */}
             <View style={styles.section}>
               <Text style={[styles.sectionLabel, { color: colors.onSurfaceVariant }]}>
@@ -382,15 +473,22 @@ export default function EditProfileScreen() {
                 fallbackStyle={styles.inputFallback}
               >
                 <View style={styles.locationStatus}>
-                  <View style={styles.locationInfo}>
+                  <View style={styles.locationInfoContainer}>
                     <Ionicons 
                       name={location ? "location" : "location-outline"} 
                       size={24} 
                       color={location ? colors.primary : colors.onSurfaceVariant} 
                     />
-                    <Text style={[styles.locationText, { color: colors.onBackground }]}>
-                      {location ? "Location enabled" : "Location not set"}
-                    </Text>
+                    <View style={styles.locationTextContainer}>
+                      <Text style={[styles.locationLabel, { color: colors.onBackground }]}>
+                        {location ? "Location enabled" : "Location not set"}
+                      </Text>
+                      {location && locationInfo?.displayName && (
+                        <Text style={[styles.locationCity, { color: colors.onSurfaceVariant }]}>
+                          {locationInfo.displayName}
+                        </Text>
+                      )}
+                    </View>
                   </View>
                   <TouchableOpacity
                     style={[styles.updateLocationButton, { backgroundColor: colors.primary }]}
@@ -601,6 +699,17 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
   },
+  // Preference options
+  optionsRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  optionHalf: {
+    flex: 1,
+  },
+  optionsColumn: {
+    gap: 12,
+  },
   // Location
   locationCard: {
     borderRadius: 16,
@@ -613,14 +722,23 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  locationInfo: {
+  locationInfoContainer: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+    flex: 1,
   },
-  locationText: {
+  locationTextContainer: {
+    flex: 1,
+  },
+  locationLabel: {
     fontSize: 16,
     fontWeight: "500",
+  },
+  locationCity: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginTop: 2,
   },
   updateLocationButton: {
     paddingHorizontal: 16,

@@ -6,7 +6,7 @@ import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 
 import { GlassButton } from "@/components/glass";
 import { hapticButtonPress, hapticSelection } from "@/lib/haptics";
-import { requestAndGetLocation } from "@/lib/location";
+import { requestAndGetLocation, type LocationInfo } from "@/lib/location";
 import { useAppTheme } from "@/lib/theme";
 
 // Distance steps: 10, 25, 50, 100, Unlimited (undefined)
@@ -30,6 +30,7 @@ export default function LocationScreen() {
     latitude: number;
     longitude: number;
   } | null>(null);
+  const [locationInfo, setLocationInfo] = useState<LocationInfo | null>(null);
 
   const maxDistance = DISTANCE_STEPS[distanceIndex];
 
@@ -51,6 +52,7 @@ export default function LocationScreen() {
       if (result.location) {
         setLocationGranted(true);
         setLocationCoords(result.location);
+        setLocationInfo(result.locationInfo);
       }
     } catch (error) {
       console.error("Failed to get location:", error);
@@ -121,20 +123,32 @@ export default function LocationScreen() {
             <Text style={styles.statusEmoji}>
               {locationGranted ? "✅" : "📍"}
             </Text>
-            <Text
-              style={[
-                styles.statusText,
-                {
-                  color: locationGranted
-                    ? colors.onPrimaryContainer
-                    : colors.onSurfaceVariant,
-                },
-              ]}
-            >
-              {locationGranted
-                ? "Location enabled"
-                : "Location not yet enabled"}
-            </Text>
+            <View style={styles.statusTextContainer}>
+              <Text
+                style={[
+                  styles.statusText,
+                  {
+                    color: locationGranted
+                      ? colors.onPrimaryContainer
+                      : colors.onSurfaceVariant,
+                  },
+                ]}
+              >
+                {locationGranted
+                  ? "Location enabled"
+                  : "Location not yet enabled"}
+              </Text>
+              {locationGranted && locationInfo?.displayName && (
+                <Text
+                  style={[
+                    styles.locationName,
+                    { color: colors.onPrimaryContainer },
+                  ]}
+                >
+                  {locationInfo.displayName}
+                </Text>
+              )}
+            </View>
           </View>
 
           {/* Enable Location Button */}
@@ -230,7 +244,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   statusEmoji: { fontSize: 24 },
+  statusTextContainer: { flex: 1, gap: 2 },
   statusText: { fontSize: 16, fontWeight: "500" },
+  locationName: { fontSize: 14, fontWeight: "600", opacity: 0.9 },
   enableButton: {
     paddingVertical: 16,
     paddingHorizontal: 24,

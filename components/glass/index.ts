@@ -4,6 +4,7 @@ export { GlassCard } from "./GlassCard";
 export { GlassChip } from "./GlassChip";
 export { GlassCloseButton } from "./GlassCloseButton";
 export { GlassHeader } from "./GlassHeader";
+export { GlassIconButton } from "./GlassIconButton";
 export { GlassInput } from "./GlassInput";
 export { GlassNavButton } from "./GlassNavButton";
 export { GlassOption } from "./GlassOption";

@@ -8,7 +8,7 @@ import {
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 
 import { GlassButton, GlassInput } from "@/components/glass";
-import { KeyboardAwareView } from "@/components/ui";
+import { HeaderIcon, KeyboardAwareView } from "@/components/ui";
 import { hapticButtonPress } from "@/lib/haptics";
 import { useAppTheme } from "@/lib/theme";
 
@@ -34,7 +34,7 @@ export default function NameScreen() {
       <KeyboardAwareView style={styles.keyboardView}>
         <View style={styles.content}>
           <Animated.View entering={FadeInDown.delay(100).duration(500)} style={styles.questionContainer}>
-            <Text style={styles.emoji}>👋</Text>
+            <HeaderIcon icon="hand-left-outline" />
             <Text style={[styles.title, { color: colors.onBackground }]}>
               {"What's your name?"}
             </Text>
@@ -76,7 +76,6 @@ const styles = StyleSheet.create({
   keyboardView: { flex: 1 },
   content: { flex: 1, paddingHorizontal: 24, paddingTop: 24 },
   questionContainer: { marginBottom: 40 },
-  emoji: { fontSize: 48, marginBottom: 16 },
   title: { fontSize: 32, fontWeight: "700", marginBottom: 8, letterSpacing: -0.5 },
   subtitle: { fontSize: 17, lineHeight: 24 },
   inputContainer: { gap: 16 },

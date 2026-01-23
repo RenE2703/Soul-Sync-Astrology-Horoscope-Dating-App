@@ -2,13 +2,15 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { Doc, Id } from "./_generated/dataModel";
 import {
-    action,
-    internalMutation,
-    internalQuery,
-    query,
+  action,
+  internalMutation,
+  internalQuery,
+  query,
 } from "./_generated/server";
-import { isWithinDistance } from "./lib/distance";
+import { areUsersCompatible } from "./lib/compatibility";
+import { generateChatCompletion } from "./lib/openai";
 import { withResolvedPhotos } from "./lib/photos";
+import { getAllMatchesForUser, getOtherUserId } from "./lib/utils";
 
 // Types for vector search results
 interface VectorSearchResult {
@@ -20,30 +22,19 @@ interface VectorSearchResult {
 export const getMatches = query({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
-    const matchesAsUser1 = await ctx.db
-      .query("matches")
-      .withIndex("by_user1", (q) => q.eq("user1Id", args.userId))
-      .collect();
-
-    const matchesAsUser2 = await ctx.db
-      .query("matches")
-      .withIndex("by_user2", (q) => q.eq("user2Id", args.userId))
-      .collect();
-
-    const allMatches = [...matchesAsUser1, ...matchesAsUser2];
+    const allMatches = await getAllMatchesForUser(ctx, args.userId);
 
     // Get the other user's profile for each match (with resolved photos)
     const matchesWithProfiles = await Promise.all(
       allMatches.map(async (match) => {
-        const otherUserId =
-          match.user1Id === args.userId ? match.user2Id : match.user1Id;
+        const otherUserId = getOtherUserId(match, args.userId);
         const otherUser = await ctx.db.get(otherUserId);
         const otherUserWithPhotos = await withResolvedPhotos(ctx, otherUser);
         return {
           ...match,
           otherUser: otherUserWithPhotos,
         };
-      })
+      }),
     );
 
     return matchesWithProfiles.sort((a, b) => b.matchedAt - a.matchedAt);
@@ -166,31 +157,10 @@ Interests: ${user2.interests.join(", ")}
 
 Write a brief, personalized match explanation:`;
 
-    const response: Response = await fetch(
-      "https://api.openai.com/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages: [{ role: "user", content: prompt }],
-          max_tokens: 150,
-          temperature: 0.7,
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.statusText}`);
-    }
-
-    const data: {
-      choices: { message: { content: string } }[];
-    } = await response.json();
-    const explanation: string = data.choices[0].message.content;
+    const explanation: string = await generateChatCompletion(prompt, {
+      maxTokens: 150,
+      temperature: 0.7,
+    });
 
     await ctx.runMutation(internal.matches.updateMatchExplanation, {
       matchId: args.matchId,
@@ -282,9 +252,9 @@ export const saveDailyPicks = internalMutation({
         status: v.union(
           v.literal("pending"),
           v.literal("liked"),
-          v.literal("passed")
+          v.literal("passed"),
         ),
-      })
+      }),
     ),
     generatedAt: v.number(),
     expiresAt: v.number(),
@@ -324,7 +294,7 @@ export const updatePickStatus = internalMutation({
     const updatedPicks = dailyPicks.picks.map((pick) =>
       pick.pickedUserId === args.pickedUserId
         ? { ...pick, status: args.status }
-        : pick
+        : pick,
     );
 
     await ctx.db.patch(args.dailyPicksId, { picks: updatedPicks });
@@ -350,11 +320,15 @@ export const generateDailyPicks = action({
       {
         vector: user.embedding,
         limit: 30,
-      }
+      },
     );
 
     // Filter and get top 3 picks
-    const topPicks: { userId: Id<"users">; score: number; user: Doc<"users"> }[] = [];
+    const topPicks: {
+      userId: Id<"users">;
+      score: number;
+      user: Doc<"users">;
+    }[] = [];
 
     for (const result of results) {
       if (topPicks.length >= 3) break;
@@ -368,17 +342,8 @@ export const generateDailyPicks = action({
 
       if (!candidate) continue;
 
-      // Check gender preferences both ways
-      if (!user.lookingFor.includes(candidate.gender)) continue;
-      if (!candidate.lookingFor.includes(user.gender)) continue;
-
-      // Check age preferences
-      if (candidate.age < user.ageRange.min || candidate.age > user.ageRange.max) continue;
-      if (user.age < candidate.ageRange.min || user.age > candidate.ageRange.max) continue;
-
-      // Check distance preferences (bidirectional)
-      if (!isWithinDistance(user.location, candidate.location, user.maxDistance)) continue;
-      if (!isWithinDistance(candidate.location, user.location, candidate.maxDistance)) continue;
+      // Check compatibility (gender, age, distance preferences)
+      if (!areUsersCompatible(user, candidate)) continue;
 
       // Check if already swiped
       const existingSwipe = await ctx.runQuery(internal.swipes.getSwipe, {
@@ -417,7 +382,7 @@ export const generateDailyPicks = action({
     for (const pick of topPicks) {
       // Find shared interests
       const sharedInterests = user.interests.filter((interest: string) =>
-        pick.user.interests.includes(interest)
+        pick.user.interests.includes(interest),
       );
 
       // Generate AI explanation
@@ -438,28 +403,12 @@ Write a brief match insight:`;
       let aiExplanation = "You two seem like a great match!";
 
       try {
-        const response = await fetch(
-          "https://api.openai.com/v1/chat/completions",
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              model: "gpt-4o-mini",
-              messages: [{ role: "user", content: prompt }],
-              max_tokens: 60,
-              temperature: 0.8,
-            }),
-          }
-        );
-
-        if (response.ok) {
-          const data: { choices: { message: { content: string } }[] } =
-            await response.json();
-          aiExplanation = data.choices[0].message.content.trim();
-        }
+        aiExplanation = (
+          await generateChatCompletion(prompt, {
+            maxTokens: 60,
+            temperature: 0.8,
+          })
+        ).trim();
       } catch (error) {
         console.error("Failed to generate AI explanation:", error);
       }
@@ -497,11 +446,17 @@ export const actOnDailyPick = action({
     pickedUserId: v.id("users"),
     action: v.union(v.literal("like"), v.literal("pass")),
   },
-  handler: async (ctx, args): Promise<{ matched: boolean; matchId: Id<"matches"> | null }> => {
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{ matched: boolean; matchId: Id<"matches"> | null }> => {
     // Get daily picks record
-    const dailyPicks = await ctx.runQuery(internal.matches.getDailyPicksInternal, {
-      userId: args.userId,
-    });
+    const dailyPicks = await ctx.runQuery(
+      internal.matches.getDailyPicksInternal,
+      {
+        userId: args.userId,
+      },
+    );
 
     if (!dailyPicks) {
       throw new Error("No daily picks found");
@@ -516,7 +471,7 @@ export const actOnDailyPick = action({
 
     // If liked, create a swipe (this will also check for mutual match)
     if (args.action === "like") {
-      const swipeResult: { matched: boolean; matchId: Id<"matches"> | null } = 
+      const swipeResult: { matched: boolean; matchId: Id<"matches"> | null } =
         await ctx.runMutation(internal.swipes.createSwipeInternal, {
           swiperId: args.userId,
           swipedId: args.pickedUserId,

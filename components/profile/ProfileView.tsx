@@ -2,17 +2,18 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useState } from "react";
 import {
-    Dimensions,
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { GlassNavButton } from "@/components/glass";
+import { PhotoIndicators, PhotoTapZones } from "@/components/ui";
 import { Doc } from "@/convex/_generated/dataModel";
 import { AdaptiveGlassView } from "@/lib/glass";
 import { useAppTheme } from "@/lib/theme";
@@ -59,37 +60,14 @@ export function ProfileView({ user, distance }: ProfileViewProps) {
         />
 
         {/* Photo Navigation Indicators */}
-        {photos.length > 1 && (
-          <View style={[styles.photoIndicators, { top: insets.top + 12 }]}>
-            {photos.map((_, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.indicator,
-                  {
-                    backgroundColor: index === currentPhotoIndex
-                      ? "#FFFFFF"
-                      : "rgba(255,255,255,0.4)",
-                  },
-                ]}
-              />
-            ))}
-          </View>
-        )}
+        <PhotoIndicators
+          count={photos.length}
+          currentIndex={currentPhotoIndex}
+          style={{ top: insets.top + 12 }}
+        />
 
         {/* Tap Zones for Photo Navigation */}
-        <View style={styles.tapZones}>
-          <TouchableOpacity
-            style={styles.tapZoneLeft}
-            onPress={() => handlePhotoTap("left")}
-            activeOpacity={1}
-          />
-          <TouchableOpacity
-            style={styles.tapZoneRight}
-            onPress={() => handlePhotoTap("right")}
-            activeOpacity={1}
-          />
-        </View>
+        <PhotoTapZones onTap={handlePhotoTap} />
 
         {/* Navigation Buttons */}
         {photos.length > 1 && (
@@ -244,32 +222,6 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     height: PHOTO_HEIGHT * 0.5,
-  },
-  photoIndicators: {
-    position: "absolute",
-    left: 16,
-    right: 16,
-    flexDirection: "row",
-    gap: 4,
-  },
-  indicator: {
-    flex: 1,
-    height: 3,
-    borderRadius: 2,
-  },
-  tapZones: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    flexDirection: "row",
-  },
-  tapZoneLeft: {
-    flex: 1,
-  },
-  tapZoneRight: {
-    flex: 1,
   },
   navButtonLeft: {
     position: "absolute",

@@ -9,7 +9,9 @@ import {
     mutation,
     query
 } from "./_generated/server";
+import { generateEmbedding } from "./lib/openai";
 import { withResolvedPhotos } from "./lib/photos";
+import { calculateAge } from "./lib/utils";
 
 // Get user by Clerk ID (with resolved photo URLs)
 export const getByClerkId = query({
@@ -65,7 +67,7 @@ export const createProfile = internalMutation({
   args: {
     clerkId: v.string(),
     name: v.string(),
-    age: v.number(),
+    dateOfBirth: v.number(), // Unix timestamp
     gender: v.string(),
     bio: v.string(),
     lookingFor: v.array(v.string()),
@@ -86,8 +88,10 @@ export const createProfile = internalMutation({
   },
   handler: async (ctx, args): Promise<Id<"users">> => {
     const now = Date.now();
+    const age = calculateAge(args.dateOfBirth);
     return await ctx.db.insert("users", {
       ...args,
+      age, // Computed from dateOfBirth for vector index filtering
       createdAt: now,
       updatedAt: now,
     });
@@ -99,7 +103,7 @@ export const createProfileWithEmbedding = action({
   args: {
     clerkId: v.string(),
     name: v.string(),
-    age: v.number(),
+    dateOfBirth: v.number(), // Unix timestamp
     gender: v.string(),
     bio: v.string(),
     lookingFor: v.array(v.string()),
@@ -122,27 +126,7 @@ export const createProfileWithEmbedding = action({
     const profileText: string = `${args.bio} Interests: ${args.interests.join(", ")}`;
 
     // Generate embedding using OpenAI
-    const response: Response = await fetch(
-      "https://api.openai.com/v1/embeddings",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "text-embedding-3-small",
-          input: profileText,
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.statusText}`);
-    }
-
-    const data: { data: { embedding: number[] }[] } = await response.json();
-    const embedding: number[] = data.data[0].embedding;
+    const embedding: number[] = await generateEmbedding(profileText);
 
     // Store profile with embedding
     const userId: Id<"users"> = await ctx.runMutation(
@@ -162,6 +146,8 @@ export const updateProfile = mutation({
   args: {
     id: v.id("users"),
     name: v.optional(v.string()),
+    dateOfBirth: v.optional(v.number()), // Unix timestamp
+    gender: v.optional(v.string()),
     bio: v.optional(v.string()),
     lookingFor: v.optional(v.array(v.string())),
     ageRange: v.optional(
@@ -181,13 +167,19 @@ export const updateProfile = mutation({
     maxDistance: v.optional(v.number()),
   },
   handler: async (ctx, args): Promise<void> => {
-    const { id, ...updates } = args;
+    const { id, dateOfBirth, ...updates } = args;
     const filteredUpdates = Object.fromEntries(
       Object.entries(updates).filter(([, value]) => value !== undefined)
     );
 
+    // If dateOfBirth is updated, recalculate age
+    const ageUpdate = dateOfBirth !== undefined 
+      ? { dateOfBirth, age: calculateAge(dateOfBirth) }
+      : {};
+
     await ctx.db.patch(id, {
       ...filteredUpdates,
+      ...ageUpdate,
       updatedAt: Date.now(),
     });
 
@@ -226,27 +218,7 @@ export const updateEmbeddingInternal_action = internalAction({
 
     const profileText: string = `${user.bio} Interests: ${user.interests.join(", ")}`;
 
-    const response: Response = await fetch(
-      "https://api.openai.com/v1/embeddings",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "text-embedding-3-small",
-          input: profileText,
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.statusText}`);
-    }
-
-    const data: { data: { embedding: number[] }[] } = await response.json();
-    const embedding: number[] = data.data[0].embedding;
+    const embedding: number[] = await generateEmbedding(profileText);
 
     await ctx.runMutation(internal.users.updateEmbeddingInternal, {
       userId: args.userId,

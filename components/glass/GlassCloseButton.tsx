@@ -1,21 +1,21 @@
 import { useRouter } from "expo-router";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text } from "react-native";
 
-import { GlassView, supportsGlassEffect } from "@/lib/glass";
-import { hapticButtonPress } from "@/lib/haptics";
-import { useAppTheme } from "@/lib/theme";
+import { GlassIconButton } from "./GlassIconButton";
 
 interface GlassCloseButtonProps {
   /** Custom onPress handler. If not provided, uses router.back() */
   onPress?: () => void;
 }
 
+/**
+ * A glass-effect close button with an X icon.
+ * Navigates back by default, or calls custom onPress if provided.
+ */
 export function GlassCloseButton({ onPress }: GlassCloseButtonProps = {}) {
   const router = useRouter();
-  const { colors } = useAppTheme();
 
   const handleClose = () => {
-    hapticButtonPress();
     if (onPress) {
       onPress();
     } else {
@@ -28,42 +28,15 @@ export function GlassCloseButton({ onPress }: GlassCloseButtonProps = {}) {
     }
   };
 
-  const content = (
-    <Text style={styles.closeIcon}>×</Text>
-  );
-
-  if (supportsGlassEffect) {
-    return (
-      <TouchableOpacity onPress={handleClose} activeOpacity={0.7}>
-        <GlassView style={styles.button} glassEffectStyle="regular" isInteractive>
-          {content}
-        </GlassView>
-      </TouchableOpacity>
-    );
-  }
-
-  // Fallback for non-iOS 26
   return (
-    <TouchableOpacity onPress={handleClose} activeOpacity={0.7}>
-      <View style={[styles.button, styles.fallback, { backgroundColor: colors.surfaceVariant }]}>
-        {content}
-      </View>
-    </TouchableOpacity>
+    <GlassIconButton
+      icon={<Text style={styles.closeIcon}>×</Text>}
+      onPress={handleClose}
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  button: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  fallback: {
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
-  },
   closeIcon: {
     fontSize: 28,
     fontWeight: "700",

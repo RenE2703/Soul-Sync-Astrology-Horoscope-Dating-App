@@ -7,7 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CodeVerification } from "@/components/auth";
 import { GlassButton, GlassInput } from "@/components/glass";
-import { KeyboardAwareView } from "@/components/ui";
+import { HeaderIcon, KeyboardAwareView } from "@/components/ui";
 import { hapticButtonPress } from "@/lib/haptics";
 import { useAppTheme } from "@/lib/theme";
 
@@ -75,7 +75,7 @@ export default function SignInScreen() {
       <CodeVerification
         email={email}
         title="Verify your identity"
-        emoji="🛡️"
+        icon="shield-checkmark-outline"
         onVerify={handleVerifySecondFactor}
         onBack={() => setNeedsSecondFactor(false)}
         backButtonText="Back to sign in"
@@ -92,7 +92,7 @@ export default function SignInScreen() {
       <KeyboardAwareView style={styles.keyboardView}>
         <View style={styles.content}>
           <Animated.View entering={FadeInDown.delay(100).duration(500)} style={styles.header}>
-            <Text style={styles.emoji}>👋</Text>
+            <HeaderIcon icon="hand-left-outline" />
             <Text style={[styles.title, { color: colors.onBackground }]}>
               Welcome back
             </Text>
@@ -166,10 +166,6 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: 40,
-  },
-  emoji: {
-    fontSize: 48,
-    marginBottom: 16,
   },
   title: {
     fontSize: 32,

@@ -2,6 +2,9 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
 import { action, internalMutation } from "./_generated/server";
+import { areUsersCompatible } from "./lib/compatibility";
+import { generateEmbedding } from "./lib/openai";
+import { calculateAge, getAllMatchesForUser } from "./lib/utils";
 import { demoProfiles } from "./sampleData/demoProfiles";
 
 /**
@@ -26,6 +29,12 @@ import { demoProfiles } from "./sampleData/demoProfiles";
  * 4. Clear all swipes (useful for resetting swipe state):
  *    npx convex run seed:clearSwipes
  *
+ * 5. Clear daily picks (reset AI matches so they regenerate):
+ *    npx convex run seed:clearDailyPicks
+ *
+ *    For a specific user:
+ *    npx convex run seed:clearDailyPicks '{"clerkId": "user_xxx"}'
+ *
  * =============================================================================
  */
 
@@ -34,7 +43,7 @@ export const createDemoUser = internalMutation({
   args: {
     clerkId: v.string(),
     name: v.string(),
-    age: v.number(),
+    dateOfBirth: v.number(), // Unix timestamp
     gender: v.string(),
     bio: v.string(),
     lookingFor: v.array(v.string()),
@@ -53,10 +62,12 @@ export const createDemoUser = internalMutation({
   },
   handler: async (ctx, args): Promise<Id<"users">> => {
     const now = Date.now();
+    const age = calculateAge(args.dateOfBirth);
     // Only include maxDistance if it's defined
     const { maxDistance, ...rest } = args;
     return await ctx.db.insert("users", {
       ...rest,
+      age, // Computed from dateOfBirth for vector index filtering
       ...(maxDistance !== undefined && { maxDistance }),
       createdAt: now,
       updatedAt: now,
@@ -77,25 +88,16 @@ export const seedDemoProfiles = action({
       // Generate embedding for profile
       const profileText = `${profile.bio} Interests: ${profile.interests.join(", ")}`;
 
-      const response = await fetch("https://api.openai.com/v1/embeddings", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "text-embedding-3-small",
-          input: profileText,
-        }),
-      });
-
-      if (!response.ok) {
-        console.error(`Failed to generate embedding for ${profile.name}`);
+      let embedding: number[];
+      try {
+        embedding = await generateEmbedding(profileText);
+      } catch (error) {
+        console.error(
+          `Failed to generate embedding for ${profile.name}`,
+          error,
+        );
         continue;
       }
-
-      const data: { data: { embedding: number[] }[] } = await response.json();
-      const embedding = data.data[0].embedding;
 
       // Create demo user with unique clerkId
       const clerkId = `demo_${profile.name.toLowerCase()}_${Date.now()}`;
@@ -120,7 +122,9 @@ export const deleteDemoUsers = internalMutation({
   handler: async (ctx): Promise<{ deletedCount: number }> => {
     // Find all users with clerkId starting with "demo_"
     const allUsers = await ctx.db.query("users").collect();
-    const demoUsers = allUsers.filter((user) => user.clerkId.startsWith("demo_"));
+    const demoUsers = allUsers.filter((user) =>
+      user.clerkId.startsWith("demo_"),
+    );
 
     let deletedCount = 0;
     for (const user of demoUsers) {
@@ -139,16 +143,9 @@ export const deleteDemoUsers = internalMutation({
       }
 
       // Delete associated matches
-      const matchesAsUser1 = await ctx.db
-        .query("matches")
-        .withIndex("by_user1", (q) => q.eq("user1Id", user._id))
-        .collect();
-      const matchesAsUser2 = await ctx.db
-        .query("matches")
-        .withIndex("by_user2", (q) => q.eq("user2Id", user._id))
-        .collect();
+      const allMatches = await getAllMatchesForUser(ctx, user._id);
 
-      for (const match of [...matchesAsUser1, ...matchesAsUser2]) {
+      for (const match of allMatches) {
         // Delete messages for this match
         const messages = await ctx.db
           .query("messages")
@@ -221,7 +218,7 @@ export const createDemoSwipe = internalMutation({
     const existingSwipe = await ctx.db
       .query("swipes")
       .withIndex("by_swiper_and_swiped", (q) =>
-        q.eq("swiperId", args.swiperId).eq("swipedId", args.swipedId)
+        q.eq("swiperId", args.swiperId).eq("swipedId", args.swipedId),
       )
       .first();
 
@@ -272,7 +269,7 @@ export const seedSwipesForUser = action({
   },
   handler: async (
     ctx,
-    args
+    args,
   ): Promise<{
     success: boolean;
     likesCreated: number;
@@ -293,32 +290,14 @@ export const seedSwipesForUser = action({
 
     if (demoUsers.length === 0) {
       throw new Error(
-        "No demo users found. Run seedDemoProfiles first to create demo users."
+        "No demo users found. Run seedDemoProfiles first to create demo users.",
       );
     }
 
     // Filter demo users to only those who could potentially match with target user
-    const compatibleDemoUsers = demoUsers.filter((demoUser) => {
-      // Demo user must be looking for target user's gender
-      if (!demoUser.lookingFor.includes(targetUser.gender)) return false;
-
-      // Target user must be looking for demo user's gender
-      if (!targetUser.lookingFor.includes(demoUser.gender)) return false;
-
-      // Check age compatibility both ways
-      if (
-        targetUser.age < demoUser.ageRange.min ||
-        targetUser.age > demoUser.ageRange.max
-      )
-        return false;
-      if (
-        demoUser.age < targetUser.ageRange.min ||
-        demoUser.age > targetUser.ageRange.max
-      )
-        return false;
-
-      return true;
-    });
+    const compatibleDemoUsers = demoUsers.filter((demoUser) =>
+      areUsersCompatible(demoUser, targetUser),
+    );
 
     // Determine how many likes to create
     const likeCount = args.likeCount ?? compatibleDemoUsers.length;
@@ -345,5 +324,73 @@ export const seedSwipesForUser = action({
       targetUserName: targetUser.name,
       likedBy,
     };
+  },
+});
+
+// Internal mutation to delete daily picks
+export const deleteAllDailyPicks = internalMutation({
+  args: {
+    userId: v.optional(v.id("users")),
+  },
+  handler: async (ctx, args): Promise<{ deletedCount: number }> => {
+    let dailyPicks;
+
+    if (args.userId) {
+      // Delete picks for specific user
+      const userPicks = await ctx.db
+        .query("dailyPicks")
+        .withIndex("by_user", (q) => q.eq("userId", args.userId!))
+        .first();
+      dailyPicks = userPicks ? [userPicks] : [];
+    } else {
+      // Delete all daily picks
+      dailyPicks = await ctx.db.query("dailyPicks").collect();
+    }
+
+    for (const pick of dailyPicks) {
+      await ctx.db.delete(pick._id);
+    }
+
+    return { deletedCount: dailyPicks.length };
+  },
+});
+
+/**
+ * Clear daily picks (reset AI matches so they regenerate)
+ * CLI: npx convex run seed:clearDailyPicks
+ * For specific user: npx convex run seed:clearDailyPicks '{"clerkId": "user_xxx"}'
+ */
+export const clearDailyPicks = action({
+  args: {
+    clerkId: v.optional(v.string()),
+  },
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{ success: boolean; deletedCount: number; message: string }> => {
+    let userId: Id<"users"> | undefined;
+
+    if (args.clerkId) {
+      const user = await ctx.runMutation(internal.seed.getUserByClerkId, {
+        clerkId: args.clerkId,
+      });
+
+      if (!user) {
+        throw new Error(`User with clerkId "${args.clerkId}" not found`);
+      }
+
+      userId = user._id;
+    }
+
+    const result = await ctx.runMutation(internal.seed.deleteAllDailyPicks, {
+      userId,
+    });
+
+    const message = args.clerkId
+      ? `Deleted ${result.deletedCount} daily picks for user`
+      : `Deleted ${result.deletedCount} daily picks for all users`;
+
+    console.log(message);
+    return { success: true, deletedCount: result.deletedCount, message };
   },
 });

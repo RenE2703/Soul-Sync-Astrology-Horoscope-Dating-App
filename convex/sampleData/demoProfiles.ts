@@ -5,7 +5,7 @@
 
 export interface DemoProfileBase {
   name: string;
-  age: number;
+  dateOfBirth: number; // Unix timestamp
   gender: string;
   bio: string;
   lookingFor: string[];
@@ -17,6 +17,19 @@ export interface DemoProfileBase {
 export interface DemoProfile extends DemoProfileBase {
   location: { latitude: number; longitude: number };
   maxDistance?: number; // undefined = unlimited (no distance filter)
+}
+
+/**
+ * Helper to convert age to an approximate dateOfBirth timestamp
+ * Uses a random month/day for variety
+ */
+function ageToDateOfBirth(age: number): number {
+  const now = new Date();
+  const birthYear = now.getFullYear() - age;
+  // Random month (0-11) and day (1-28) for variety
+  const month = Math.floor(Math.random() * 12);
+  const day = Math.floor(Math.random() * 28) + 1;
+  return new Date(birthYear, month, day).getTime();
 }
 
 // San Francisco Bay Area locations - spread around the city
@@ -63,7 +76,7 @@ const baseProfiles: DemoProfileBase[] = [
   // ============================================================================
   {
     name: "Sophia",
-    age: 26,
+    dateOfBirth: ageToDateOfBirth(26),
     gender: "woman",
     bio: "Yoga instructor who loves hiking and sunset photography. Fluent in three languages and always planning my next adventure. Looking for someone who values wellness and spontaneous road trips.",
     lookingFor: ["man", "woman"],
@@ -77,7 +90,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Luna",
-    age: 24,
+    dateOfBirth: ageToDateOfBirth(24),
     gender: "woman",
     bio: "Art curator with a passion for contemporary design. Weekend farmer's market enthusiast and amateur baker. I believe in meaningful conversations over great wine.",
     lookingFor: ["man", "woman"],
@@ -91,7 +104,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Aria",
-    age: 27,
+    dateOfBirth: ageToDateOfBirth(27),
     gender: "woman",
     bio: "Pastry chef with dreams of opening my own café. Love experimenting with flavors and hosting dinner parties. Looking for someone who appreciates good food and better company.",
     lookingFor: ["man"],
@@ -105,7 +118,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Mia",
-    age: 25,
+    dateOfBirth: ageToDateOfBirth(25),
     gender: "woman",
     bio: "Physical therapist who believes in active living. Trail running, yoga, and beach volleyball are my jam. Looking for a partner in crime for outdoor adventures and cozy movie nights.",
     lookingFor: ["man"],
@@ -119,7 +132,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Zoe",
-    age: 23,
+    dateOfBirth: ageToDateOfBirth(23),
     gender: "woman",
     bio: "Graphic designer with a love for vintage aesthetics. Thrift shopping queen, vinyl collector, and aspiring DJ. Looking for someone who appreciates art and doesn't take life too seriously.",
     lookingFor: ["man", "woman"],
@@ -133,7 +146,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Isabella",
-    age: 28,
+    dateOfBirth: ageToDateOfBirth(28),
     gender: "woman",
     bio: "Marketing director who secretly writes poetry. Love spontaneous weekend getaways, trying new restaurants, and dancing salsa. Looking for someone who can keep up with my energy.",
     lookingFor: ["man"],
@@ -147,7 +160,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Emma",
-    age: 29,
+    dateOfBirth: ageToDateOfBirth(29),
     gender: "woman",
     bio: "Environmental lawyer fighting for our planet. When I'm not in court, I'm hiking with my rescue dog or tending to my urban garden. Seeking someone who cares about making a difference.",
     lookingFor: ["man", "woman"],
@@ -161,7 +174,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Olivia",
-    age: 26,
+    dateOfBirth: ageToDateOfBirth(26),
     gender: "woman",
     bio: "Pediatric nurse with an infectious laugh. Love game nights, true crime podcasts, and making the perfect cup of tea. Looking for someone kind who appreciates the little things.",
     lookingFor: ["man"],
@@ -175,7 +188,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Ava",
-    age: 24,
+    dateOfBirth: ageToDateOfBirth(24),
     gender: "woman",
     bio: "Aspiring actress and part-time barista. Obsessed with classic films, live theater, and discovering hidden speakeasies. Looking for someone who loves adventure and good conversation.",
     lookingFor: ["man", "woman"],
@@ -189,7 +202,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Charlotte",
-    age: 31,
+    dateOfBirth: ageToDateOfBirth(31),
     gender: "woman",
     bio: "Interior designer who turns houses into homes. Weekend antique hunter and amateur photographer. Seeking someone with good taste who appreciates beautiful spaces.",
     lookingFor: ["man"],
@@ -203,7 +216,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Amelia",
-    age: 27,
+    dateOfBirth: ageToDateOfBirth(27),
     gender: "woman",
     bio: "Data scientist who speaks fluent Python and sarcasm. Love board game nights, craft cocktails, and heated debates about the best pizza in the city. Looking for a witty partner.",
     lookingFor: ["man", "woman"],
@@ -217,7 +230,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Harper",
-    age: 25,
+    dateOfBirth: ageToDateOfBirth(25),
     gender: "woman",
     bio: "Elementary school teacher who believes in making learning fun. Love camping, country music, and perfecting my grandmother's recipes. Looking for someone genuine and family-oriented.",
     lookingFor: ["man"],
@@ -231,7 +244,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Evelyn",
-    age: 30,
+    dateOfBirth: ageToDateOfBirth(30),
     gender: "woman",
     bio: "Freelance writer and travel blogger. 40 countries and counting! Love local food, sunset chasing, and meaningful connections. Looking for a fellow adventurer to explore with.",
     lookingFor: ["man"],
@@ -245,7 +258,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Abigail",
-    age: 28,
+    dateOfBirth: ageToDateOfBirth(28),
     gender: "woman",
     bio: "ER doctor who needs someone to help me decompress. Love spicy food, stand-up comedy, and spontaneous karaoke. Looking for someone who doesn't mind my unpredictable schedule.",
     lookingFor: ["man", "woman"],
@@ -259,7 +272,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Ella",
-    age: 23,
+    dateOfBirth: ageToDateOfBirth(23),
     gender: "woman",
     bio: "Fashion merchandising student with an eye for style. Love vintage shopping, making mood boards, and discovering new music. Looking for someone creative with their own unique vibe.",
     lookingFor: ["man", "woman"],
@@ -273,7 +286,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Sofia",
-    age: 26,
+    dateOfBirth: ageToDateOfBirth(26),
     gender: "woman",
     bio: "Professional ballet dancer transitioning into teaching. Love classical music, foreign films, and long walks along the river. Looking for someone who appreciates art and dedication.",
     lookingFor: ["man"],
@@ -287,7 +300,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Camila",
-    age: 29,
+    dateOfBirth: ageToDateOfBirth(29),
     gender: "woman",
     bio: "Startup founder building the future of sustainable fashion. Love morning runs, oat milk lattes, and mentoring young entrepreneurs. Looking for someone equally driven and passionate.",
     lookingFor: ["man"],
@@ -301,7 +314,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Scarlett",
-    age: 27,
+    dateOfBirth: ageToDateOfBirth(27),
     gender: "woman",
     bio: "Sommelier at an upscale restaurant. Love discovering new wines, cooking elaborate meals, and lazy Sunday brunches. Looking for someone who enjoys the finer things in life.",
     lookingFor: ["man", "woman"],
@@ -315,7 +328,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Victoria",
-    age: 32,
+    dateOfBirth: ageToDateOfBirth(32),
     gender: "woman",
     bio: "Museum curator with a PhD in art history. Love weekend gallery hopping, reading biographies, and discussing conspiracy theories. Looking for an intellectual who can keep me engaged.",
     lookingFor: ["man"],
@@ -329,7 +342,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Madison",
-    age: 25,
+    dateOfBirth: ageToDateOfBirth(25),
     gender: "woman",
     bio: "Fitness influencer and certified nutritionist. Love sunrise workouts, meal prep Sundays, and helping others reach their goals. Looking for someone who shares my healthy lifestyle.",
     lookingFor: ["man"],
@@ -343,7 +356,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Penelope",
-    age: 28,
+    dateOfBirth: ageToDateOfBirth(28),
     gender: "woman",
     bio: "Veterinarian with a soft spot for animals of all sizes. Love nature documentaries, farmers markets, and finding the best hole-in-the-wall restaurants. Seeking a kind soul.",
     lookingFor: ["man", "woman"],
@@ -357,7 +370,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Grace",
-    age: 30,
+    dateOfBirth: ageToDateOfBirth(30),
     gender: "woman",
     bio: "Classical pianist turned music therapist. Love live concerts, road trips, and baking elaborate desserts. Looking for someone who appreciates both silence and symphony.",
     lookingFor: ["man"],
@@ -371,7 +384,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Chloe",
-    age: 24,
+    dateOfBirth: ageToDateOfBirth(24),
     gender: "woman",
     bio: "UX designer who's obsessed with making technology more human. Love escape rooms, true crime podcasts, and competitive mini golf. Looking for someone playful and creative.",
     lookingFor: ["man", "woman"],
@@ -385,7 +398,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Riley",
-    age: 26,
+    dateOfBirth: ageToDateOfBirth(26),
     gender: "woman",
     bio: "Sports journalist covering professional soccer. Love the beautiful game, craft beer, and heated sports debates. Looking for someone who won't mind my weekend schedule during season.",
     lookingFor: ["man"],
@@ -403,7 +416,7 @@ const baseProfiles: DemoProfileBase[] = [
   // ============================================================================
   {
     name: "Marcus",
-    age: 29,
+    dateOfBirth: ageToDateOfBirth(29),
     gender: "man",
     bio: "Software engineer by day, musician by night. I love playing guitar, attending jazz concerts, and exploring local coffee shops. Seeking someone creative and curious.",
     lookingFor: ["woman"],
@@ -417,7 +430,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "James",
-    age: 31,
+    dateOfBirth: ageToDateOfBirth(31),
     gender: "man",
     bio: "Documentary filmmaker who's passionate about storytelling. Recently got into rock climbing and I'm always up for trying new outdoor activities. Dog dad to a golden retriever named Bear.",
     lookingFor: ["woman"],
@@ -431,7 +444,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Ethan",
-    age: 28,
+    dateOfBirth: ageToDateOfBirth(28),
     gender: "man",
     bio: "Architect who loves building things, both digitally and physically. Weekend surfer, amateur woodworker, and dedicated coffee snob. Seeking someone adventurous and creative.",
     lookingFor: ["woman"],
@@ -445,7 +458,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Noah",
-    age: 30,
+    dateOfBirth: ageToDateOfBirth(30),
     gender: "man",
     bio: "Chef at a farm-to-table restaurant. Obsessed with sustainable food and local ingredients. When I'm not in the kitchen, you'll find me at the farmers market or on my bike.",
     lookingFor: ["woman", "man"],
@@ -459,7 +472,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Alexander",
-    age: 33,
+    dateOfBirth: ageToDateOfBirth(33),
     gender: "man",
     bio: "Venture capitalist with a startup background. Tennis player, wine enthusiast, and amateur chef. Seeking someone ambitious who enjoys deep conversations and spontaneous travel.",
     lookingFor: ["woman"],
@@ -473,7 +486,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Liam",
-    age: 27,
+    dateOfBirth: ageToDateOfBirth(27),
     gender: "man",
     bio: "Emergency room physician who needs someone to help me unwind. Love cooking Italian food, watching Premier League, and weekend hiking trips. Looking for someone patient and fun.",
     lookingFor: ["woman"],
@@ -487,7 +500,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Benjamin",
-    age: 32,
+    dateOfBirth: ageToDateOfBirth(32),
     gender: "man",
     bio: "Corporate lawyer by day, stand-up comedy enthusiast by night. Love whiskey tastings, political debates, and finding the best brunch spots. Seeking someone witty and opinionated.",
     lookingFor: ["woman"],
@@ -501,7 +514,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "William",
-    age: 29,
+    dateOfBirth: ageToDateOfBirth(29),
     gender: "man",
     bio: "Product manager at a tech startup. Love indoor climbing, board game nights, and perfecting my espresso technique. Looking for someone curious who enjoys both adventure and cozy nights in.",
     lookingFor: ["woman", "man"],
@@ -515,7 +528,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Sebastian",
-    age: 28,
+    dateOfBirth: ageToDateOfBirth(28),
     gender: "man",
     bio: "Photographer specializing in street photography. Love urban exploration, vintage cameras, and late-night conversations over ramen. Seeking someone artistic with their own creative passion.",
     lookingFor: ["woman", "man"],
@@ -529,7 +542,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Oliver",
-    age: 30,
+    dateOfBirth: ageToDateOfBirth(30),
     gender: "man",
     bio: "High school history teacher who makes the past come alive. Love museums, historical fiction, and planning elaborate themed dinner parties. Looking for someone intellectually curious.",
     lookingFor: ["woman"],
@@ -543,7 +556,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Daniel",
-    age: 26,
+    dateOfBirth: ageToDateOfBirth(26),
     gender: "man",
     bio: "Physical therapist and former college basketball player. Love staying active, weekend beach trips, and trying new workout classes. Looking for someone who enjoys an active lifestyle.",
     lookingFor: ["woman"],
@@ -557,7 +570,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Matthew",
-    age: 34,
+    dateOfBirth: ageToDateOfBirth(34),
     gender: "man",
     bio: "Airline pilot who's been to more countries than I can count. Love scuba diving, photography, and collecting stories from around the world. Seeking someone who doesn't mind my travel schedule.",
     lookingFor: ["woman"],
@@ -571,7 +584,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Henry",
-    age: 31,
+    dateOfBirth: ageToDateOfBirth(31),
     gender: "man",
     bio: "Craft brewery owner living my dream. Love experimenting with new recipes, live music, and Sunday farmers markets. Looking for someone who enjoys good beer and better conversation.",
     lookingFor: ["woman", "man"],
@@ -585,7 +598,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Jackson",
-    age: 27,
+    dateOfBirth: ageToDateOfBirth(27),
     gender: "man",
     bio: "Financial analyst who knows how to balance work and play. Love skiing, golf, and finding the best happy hour in the city. Seeking someone ambitious with a great sense of humor.",
     lookingFor: ["woman"],
@@ -599,7 +612,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Aiden",
-    age: 25,
+    dateOfBirth: ageToDateOfBirth(25),
     gender: "man",
     bio: "Graphic designer with an obsession for clean aesthetics. Love cycling, indie films, and discovering new music. Looking for someone creative who appreciates the beauty in everyday things.",
     lookingFor: ["woman", "man"],
@@ -613,7 +626,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Lucas",
-    age: 29,
+    dateOfBirth: ageToDateOfBirth(29),
     gender: "man",
     bio: "Marine biologist who spends half his life in the ocean. Love surfing, environmental activism, and cooking seafood the right way. Seeking someone who cares about our planet.",
     lookingFor: ["woman"],
@@ -627,7 +640,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Mason",
-    age: 28,
+    dateOfBirth: ageToDateOfBirth(28),
     gender: "man",
     bio: "Mechanical engineer who builds race cars as a hobby. Love track days, road trips, and fixing things with my hands. Looking for someone who appreciates passion and dedication.",
     lookingFor: ["woman"],
@@ -641,7 +654,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Logan",
-    age: 26,
+    dateOfBirth: ageToDateOfBirth(26),
     gender: "man",
     bio: "Music producer working with indie artists. Love vinyl, live shows, and late-night studio sessions. Seeking someone creative who understands the artist lifestyle.",
     lookingFor: ["woman", "man"],
@@ -655,7 +668,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Ryan",
-    age: 32,
+    dateOfBirth: ageToDateOfBirth(32),
     gender: "man",
     bio: "Real estate developer with an eye for potential. Love architecture tours, wine country weekends, and renovating my 1920s home. Looking for someone who appreciates craftsmanship.",
     lookingFor: ["woman"],
@@ -669,7 +682,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Nathan",
-    age: 30,
+    dateOfBirth: ageToDateOfBirth(30),
     gender: "man",
     bio: "Personal trainer who believes fitness should be fun. Love HIIT, meal prep, and helping people transform their lives. Seeking someone who values health and personal growth.",
     lookingFor: ["woman"],
@@ -683,7 +696,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Dylan",
-    age: 27,
+    dateOfBirth: ageToDateOfBirth(27),
     gender: "man",
     bio: "Veterinarian specializing in exotic animals. Love nature documentaries, hiking, and my two rescue cats. Looking for someone kind who shares my love for animals.",
     lookingFor: ["woman", "man"],
@@ -697,7 +710,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Caleb",
-    age: 29,
+    dateOfBirth: ageToDateOfBirth(29),
     gender: "man",
     bio: "Cybersecurity expert who protects companies from hackers. Love escape rooms, chess, and solving complex puzzles. Seeking someone intelligent who enjoys mental challenges.",
     lookingFor: ["woman"],
@@ -711,7 +724,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Brandon",
-    age: 31,
+    dateOfBirth: ageToDateOfBirth(31),
     gender: "man",
     bio: "Executive chef at a Michelin-starred restaurant. Love farmers markets, wine pairings, and cooking elaborate meals for friends. Looking for someone who appreciates culinary art.",
     lookingFor: ["woman"],
@@ -725,7 +738,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Tyler",
-    age: 25,
+    dateOfBirth: ageToDateOfBirth(25),
     gender: "man",
     bio: "Content creator and travel vlogger. Love exploring hidden gems, trying street food, and connecting with people worldwide. Seeking someone adventurous who doesn't mind living on camera.",
     lookingFor: ["woman", "man"],
@@ -739,7 +752,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Zachary",
-    age: 33,
+    dateOfBirth: ageToDateOfBirth(33),
     gender: "man",
     bio: "Patent attorney who gets genuinely excited about innovation. Love sci-fi, chess, and building elaborate LEGO sets. Looking for someone nerdy who doesn't take themselves too seriously.",
     lookingFor: ["woman"],
@@ -753,7 +766,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Justin",
-    age: 28,
+    dateOfBirth: ageToDateOfBirth(28),
     gender: "man",
     bio: "Jazz pianist who plays at local venues. Love late-night jam sessions, vinyl collecting, and cooking soul food. Seeking someone who appreciates music and genuine connection.",
     lookingFor: ["woman"],
@@ -767,7 +780,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Aaron",
-    age: 30,
+    dateOfBirth: ageToDateOfBirth(30),
     gender: "man",
     bio: "Orthopedic surgeon who spends free time on the slopes. Love skiing, mountain biking, and anything that gets adrenaline pumping. Looking for an adventurous spirit.",
     lookingFor: ["woman"],
@@ -781,7 +794,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Adrian",
-    age: 27,
+    dateOfBirth: ageToDateOfBirth(27),
     gender: "man",
     bio: "Social media marketing manager for lifestyle brands. Love rooftop bars, weekend festivals, and staying ahead of trends. Seeking someone social who knows how to have fun.",
     lookingFor: ["woman", "man"],
@@ -795,7 +808,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Christian",
-    age: 29,
+    dateOfBirth: ageToDateOfBirth(29),
     gender: "man",
     bio: "Urban planner working to make cities more livable. Love cycling, community gardens, and local politics. Looking for someone who cares about building a better future.",
     lookingFor: ["woman"],
@@ -809,7 +822,7 @@ const baseProfiles: DemoProfileBase[] = [
   },
   {
     name: "Cameron",
-    age: 26,
+    dateOfBirth: ageToDateOfBirth(26),
     gender: "man",
     bio: "Startup founder in the sustainable tech space. Love brainstorming sessions, meditation retreats, and building things from scratch. Seeking someone driven with big dreams.",
     lookingFor: ["woman", "man"],

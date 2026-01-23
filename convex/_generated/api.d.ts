@@ -9,8 +9,11 @@
  */
 
 import type * as files from "../files.js";
+import type * as lib_compatibility from "../lib/compatibility.js";
 import type * as lib_distance from "../lib/distance.js";
+import type * as lib_openai from "../lib/openai.js";
 import type * as lib_photos from "../lib/photos.js";
+import type * as lib_utils from "../lib/utils.js";
 import type * as matches from "../matches.js";
 import type * as messages from "../messages.js";
 import type * as sampleData_demoProfiles from "../sampleData/demoProfiles.js";
@@ -26,8 +29,11 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   files: typeof files;
+  "lib/compatibility": typeof lib_compatibility;
   "lib/distance": typeof lib_distance;
+  "lib/openai": typeof lib_openai;
   "lib/photos": typeof lib_photos;
+  "lib/utils": typeof lib_utils;
   matches: typeof matches;
   messages: typeof messages;
   "sampleData/demoProfiles": typeof sampleData_demoProfiles;

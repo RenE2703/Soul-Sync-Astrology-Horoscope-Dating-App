@@ -1,10 +1,11 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { GlassBackButton, GlassButton, GlassInput } from "@/components/glass";
-import { KeyboardAwareView } from "@/components/ui";
+import { HeaderIcon, KeyboardAwareView } from "@/components/ui";
 import { useAppTheme } from "@/lib/theme";
 
 interface CodeVerificationProps {
@@ -22,8 +23,8 @@ interface CodeVerificationProps {
   buttonText?: string;
   /** Text for the back button (defaults to "Back") - no longer used, kept for compatibility */
   backButtonText?: string;
-  /** Emoji to display in header (defaults to shield for 2FA) */
-  emoji?: string;
+  /** Icon to display in header (defaults to shield-checkmark-outline for 2FA) */
+  icon?: keyof typeof Ionicons.glyphMap;
 }
 
 export function CodeVerification({
@@ -33,7 +34,7 @@ export function CodeVerification({
   onVerify,
   onBack,
   buttonText = "Verify",
-  emoji = "🛡️",
+  icon = "shield-checkmark-outline",
 }: CodeVerificationProps) {
   const { colors } = useAppTheme();
 
@@ -71,7 +72,7 @@ export function CodeVerification({
       <KeyboardAwareView style={styles.keyboardView}>
         <View style={styles.content}>
           <Animated.View entering={FadeInDown.delay(100).duration(500)} style={styles.header}>
-            <Text style={styles.emoji}>{emoji}</Text>
+            <HeaderIcon icon={icon} />
             <Text style={[styles.title, { color: colors.onBackground }]}>
               {title}
             </Text>
@@ -127,10 +128,6 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: 40,
-  },
-  emoji: {
-    fontSize: 48,
-    marginBottom: 16,
   },
   title: {
     fontSize: 32,

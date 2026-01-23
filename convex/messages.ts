@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { withResolvedPhotos } from "./lib/photos";
+import { getAllMatchesForUser, getOtherUserId } from "./lib/utils";
 
 // Get messages for a match
 export const getMessages = query({
@@ -67,18 +68,7 @@ export const markAsRead = mutation({
 export const getUnreadCount = query({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
-    // Get all matches for this user
-    const matchesAsUser1 = await ctx.db
-      .query("matches")
-      .withIndex("by_user1", (q) => q.eq("user1Id", args.userId))
-      .collect();
-
-    const matchesAsUser2 = await ctx.db
-      .query("matches")
-      .withIndex("by_user2", (q) => q.eq("user2Id", args.userId))
-      .collect();
-
-    const allMatches = [...matchesAsUser1, ...matchesAsUser2];
+    const allMatches = await getAllMatchesForUser(ctx, args.userId);
 
     let unreadCount = 0;
 
@@ -89,8 +79,8 @@ export const getUnreadCount = query({
         .filter((q) =>
           q.and(
             q.neq(q.field("senderId"), args.userId),
-            q.eq(q.field("read"), false)
-          )
+            q.eq(q.field("read"), false),
+          ),
         )
         .collect();
 
@@ -105,23 +95,11 @@ export const getUnreadCount = query({
 export const getMatchesWithLastMessage = query({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
-    // Get all matches for this user
-    const matchesAsUser1 = await ctx.db
-      .query("matches")
-      .withIndex("by_user1", (q) => q.eq("user1Id", args.userId))
-      .collect();
-
-    const matchesAsUser2 = await ctx.db
-      .query("matches")
-      .withIndex("by_user2", (q) => q.eq("user2Id", args.userId))
-      .collect();
-
-    const allMatches = [...matchesAsUser1, ...matchesAsUser2];
+    const allMatches = await getAllMatchesForUser(ctx, args.userId);
 
     const matchesWithDetails = await Promise.all(
       allMatches.map(async (match) => {
-        const otherUserId =
-          match.user1Id === args.userId ? match.user2Id : match.user1Id;
+        const otherUserId = getOtherUserId(match, args.userId);
         const otherUser = await ctx.db.get(otherUserId);
         // Resolve photo URLs for the other user
         const otherUserWithPhotos = await withResolvedPhotos(ctx, otherUser);
@@ -140,8 +118,8 @@ export const getMatchesWithLastMessage = query({
           .filter((q) =>
             q.and(
               q.neq(q.field("senderId"), args.userId),
-              q.eq(q.field("read"), false)
-            )
+              q.eq(q.field("read"), false),
+            ),
           )
           .collect();
 
@@ -151,7 +129,7 @@ export const getMatchesWithLastMessage = query({
           lastMessage,
           unreadCount: unreadCount.length,
         };
-      })
+      }),
     );
 
     // Sort by last message time or match time

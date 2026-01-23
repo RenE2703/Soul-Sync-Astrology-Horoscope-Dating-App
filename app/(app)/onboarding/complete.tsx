@@ -1,4 +1,5 @@
 import { useUser } from "@clerk/clerk-expo";
+import { Ionicons } from "@expo/vector-icons";
 import { useAction } from "convex/react";
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
@@ -53,7 +54,7 @@ export default function CompleteScreen() {
 
         const firstName = params.firstName as string;
         const lastName = params.lastName as string;
-        const age = parseInt(params.age as string, 10);
+        const dateOfBirth = parseInt(params.dateOfBirth as string, 10);
         const gender = params.gender as string;
         const bio = params.bio as string;
         const interests = JSON.parse(params.interests as string) as string[];
@@ -72,7 +73,7 @@ export default function CompleteScreen() {
         await createProfile({
           clerkId: user.id,
           name: `${firstName} ${lastName}`,
-          age,
+          dateOfBirth,
           gender: gender.toLowerCase(),
           bio,
           lookingFor,
@@ -103,9 +104,9 @@ export default function CompleteScreen() {
       <View style={styles.content}>
         {status === "done" ? (
           <Animated.View entering={FadeIn.duration(500)} style={styles.successContainer}>
-            <Animated.Text entering={FadeInDown.delay(100).duration(500)} style={styles.successEmoji}>
-              🎉
-            </Animated.Text>
+            <Animated.View entering={FadeInDown.delay(100).duration(500)} style={[styles.iconContainer, { backgroundColor: colors.primaryContainer }]}>
+              <Ionicons name="checkmark-circle" size={48} color={colors.primary} />
+            </Animated.View>
             <Animated.Text
               entering={FadeInDown.delay(200).duration(500)}
               style={[styles.successTitle, { color: colors.onBackground }]}
@@ -121,7 +122,9 @@ export default function CompleteScreen() {
           </Animated.View>
         ) : status === "error" ? (
           <Animated.View entering={FadeIn.duration(500)} style={styles.errorContainer}>
-            <Text style={styles.errorEmoji}>😔</Text>
+            <View style={[styles.iconContainer, { backgroundColor: colors.error + "20" }]}>
+              <Ionicons name="alert-circle-outline" size={48} color={colors.error} />
+            </View>
             <Text style={[styles.errorTitle, { color: colors.error }]}>
               Oops, something went wrong
             </Text>
@@ -133,9 +136,11 @@ export default function CompleteScreen() {
           <Animated.View entering={FadeIn.duration(500)} style={styles.loadingContainer}>
             <Animated.View style={[styles.pulseContainer, pulseStyle]}>
               <View style={[styles.loadingCircle, { backgroundColor: colors.primaryContainer }]}>
-                <Text style={styles.loadingEmoji}>
-                  {status === "creating" ? "📝" : "✨"}
-                </Text>
+                <Ionicons
+                  name={status === "creating" ? "document-text-outline" : "sparkles"}
+                  size={48}
+                  color={colors.primary}
+                />
               </View>
             </Animated.View>
             <Animated.Text
@@ -177,8 +182,12 @@ const styles = StyleSheet.create({
   successContainer: {
     alignItems: "center",
   },
-  successEmoji: {
-    fontSize: 80,
+  iconContainer: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 24,
   },
   successTitle: {
@@ -195,10 +204,6 @@ const styles = StyleSheet.create({
   },
   errorContainer: {
     alignItems: "center",
-  },
-  errorEmoji: {
-    fontSize: 80,
-    marginBottom: 24,
   },
   errorTitle: {
     fontSize: 24,
@@ -223,9 +228,6 @@ const styles = StyleSheet.create({
     borderRadius: 60,
     justifyContent: "center",
     alignItems: "center",
-  },
-  loadingEmoji: {
-    fontSize: 48,
   },
   loadingTitle: {
     fontSize: 24,
