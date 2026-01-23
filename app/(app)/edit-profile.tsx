@@ -32,6 +32,28 @@ const INTERESTS = [
   "Coffee", "Wine", "Pets", "Sports", "Nature", "Beach", "Fashion", "Foodie",
 ];
 
+// Distance steps: 10, 25, 50, 100, Unlimited (undefined)
+const DISTANCE_STEPS: (number | undefined)[] = [10, 25, 50, 100, undefined];
+
+const getDistanceLabel = (distance: number | undefined): string => {
+  if (distance === undefined) return "Unlimited";
+  return `${distance} miles`;
+};
+
+const getDistanceIndex = (distance: number | undefined): number => {
+  if (distance === undefined) return DISTANCE_STEPS.length - 1;
+  const index = DISTANCE_STEPS.indexOf(distance);
+  // If exact match not found, find closest step
+  if (index === -1) {
+    for (let i = 0; i < DISTANCE_STEPS.length - 1; i++) {
+      const step = DISTANCE_STEPS[i];
+      if (step !== undefined && distance <= step) return i;
+    }
+    return DISTANCE_STEPS.length - 2; // Default to 100 if not unlimited
+  }
+  return index;
+};
+
 interface PhotoEntry {
   uri: string;
   storageId?: string;
@@ -59,10 +81,12 @@ export default function EditProfileScreen() {
   const [photos, setPhotos] = useState<PhotoEntry[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   
-  // Location state
-  const [maxDistance, setMaxDistance] = useState(25);
+  // Location state - use index for slider, derive actual value
+  const [distanceIndex, setDistanceIndex] = useState(1); // Default to 25 miles (index 1)
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [isUpdatingLocation, setIsUpdatingLocation] = useState(false);
+
+  const maxDistance = DISTANCE_STEPS[distanceIndex];
 
   useEffect(() => {
     if (profile) {
@@ -76,8 +100,8 @@ export default function EditProfileScreen() {
           isNew: false,
         }))
       );
-      // Location settings
-      setMaxDistance(profile.maxDistance ?? 25);
+      // Location settings - convert saved value to index
+      setDistanceIndex(getDistanceIndex(profile.maxDistance));
       setLocation(profile.location ?? null);
     }
   }, [profile]);
@@ -202,9 +226,9 @@ export default function EditProfileScreen() {
 
   const handleDistanceChange = (value: number) => {
     const rounded = Math.round(value);
-    if (rounded !== maxDistance) {
+    if (rounded !== distanceIndex) {
       hapticSelection();
-      setMaxDistance(rounded);
+      setDistanceIndex(rounded);
     }
   };
 
@@ -392,26 +416,26 @@ export default function EditProfileScreen() {
                     Maximum distance
                   </Text>
                   <Text style={[styles.distanceValue, { color: colors.primary }]}>
-                    {maxDistance} miles
+                    {getDistanceLabel(maxDistance)}
                   </Text>
                 </View>
                 <Slider
                   style={styles.slider}
-                  minimumValue={5}
-                  maximumValue={100}
-                  value={maxDistance}
+                  minimumValue={0}
+                  maximumValue={DISTANCE_STEPS.length - 1}
+                  value={distanceIndex}
                   onValueChange={handleDistanceChange}
                   minimumTrackTintColor={colors.primary}
                   maximumTrackTintColor={colors.surfaceVariant}
                   thumbTintColor={colors.primary}
-                  step={5}
+                  step={1}
                 />
                 <View style={styles.sliderLabels}>
                   <Text style={[styles.sliderEndLabel, { color: colors.onSurfaceVariant }]}>
-                    5 mi
+                    10 mi
                   </Text>
                   <Text style={[styles.sliderEndLabel, { color: colors.onSurfaceVariant }]}>
-                    100 mi
+                    Unlimited
                   </Text>
                 </View>
               </View>

@@ -3,7 +3,7 @@
  * Using specific Unsplash photo IDs to ensure each profile has photos of the same model
  */
 
-export interface DemoProfile {
+export interface DemoProfileBase {
   name: string;
   age: number;
   gender: string;
@@ -14,7 +14,50 @@ export interface DemoProfile {
   photos: string[];
 }
 
-export const demoProfiles: DemoProfile[] = [
+export interface DemoProfile extends DemoProfileBase {
+  location: { latitude: number; longitude: number };
+  maxDistance?: number; // undefined = unlimited (no distance filter)
+}
+
+// San Francisco Bay Area locations - spread around the city
+const sfLocations = [
+  { latitude: 37.7858, longitude: -122.4064 }, // Union Square (near simulator)
+  { latitude: 37.7879, longitude: -122.4074 }, // Downtown SF
+  { latitude: 37.7849, longitude: -122.4094 }, // Powell St
+  { latitude: 37.7899, longitude: -122.4044 }, // North Beach
+  { latitude: 37.7949, longitude: -122.3994 }, // Embarcadero
+  { latitude: 37.7799, longitude: -122.4144 }, // Civic Center
+  { latitude: 37.7749, longitude: -122.4194 }, // Hayes Valley
+  { latitude: 37.7699, longitude: -122.4294 }, // Mission Dolores
+  { latitude: 37.7599, longitude: -122.4194 }, // Mission District
+  { latitude: 37.7549, longitude: -122.4144 }, // Castro
+  { latitude: 37.7649, longitude: -122.4094 }, // Noe Valley
+  { latitude: 37.8049, longitude: -122.4194 }, // Fisherman's Wharf
+  { latitude: 37.8099, longitude: -122.4294 }, // Marina
+  { latitude: 37.7999, longitude: -122.4394 }, // Pacific Heights
+  { latitude: 37.7749, longitude: -122.3894 }, // SOMA
+  { latitude: 37.7449, longitude: -122.4394 }, // Bernal Heights
+  { latitude: 37.7399, longitude: -122.3994 }, // Potrero Hill
+  { latitude: 37.7649, longitude: -122.4594 }, // Sunset
+  { latitude: 37.7349, longitude: -122.4194 }, // Glen Park
+  { latitude: 37.7299, longitude: -122.4094 }, // Excelsior
+];
+
+// Max distances in miles - bigger steps, undefined = unlimited (no distance filter)
+const maxDistances: (number | undefined)[] = [
+  10, 25, 50, 100, undefined,  // 5 options cycling through profiles
+  25, 50, 100, undefined, 10,
+  50, 100, undefined, 10, 25,
+  100, undefined, 10, 25, 50,
+  undefined, 10, 25, 50, 100,
+  10, 25, 50, 100, undefined,
+  25, 50, 100, undefined, 10,
+  50, 100, undefined, 10, 25,
+  100, undefined, 10, 25, 50,
+  undefined, 10, 25, 50, 100,
+];
+
+const baseProfiles: DemoProfileBase[] = [
   // ============================================================================
   // WOMEN PROFILES
   // ============================================================================
@@ -779,3 +822,14 @@ export const demoProfiles: DemoProfile[] = [
     ],
   },
 ];
+
+/**
+ * Map profiles with locations - all in SF Bay Area
+ */
+export const demoProfiles: DemoProfile[] = baseProfiles.map((profile, index) => {
+  return {
+    ...profile,
+    location: sfLocations[index % sfLocations.length],
+    maxDistance: maxDistances[index % maxDistances.length],
+  };
+});

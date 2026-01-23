@@ -376,8 +376,9 @@ export const generateDailyPicks = action({
       if (candidate.age < user.ageRange.min || candidate.age > user.ageRange.max) continue;
       if (user.age < candidate.ageRange.min || user.age > candidate.ageRange.max) continue;
 
-      // Check distance preferences
+      // Check distance preferences (bidirectional)
       if (!isWithinDistance(user.location, candidate.location, user.maxDistance)) continue;
+      if (!isWithinDistance(candidate.location, user.location, candidate.maxDistance)) continue;
 
       // Check if already swiped
       const existingSwipe = await ctx.runQuery(internal.swipes.getSwipe, {

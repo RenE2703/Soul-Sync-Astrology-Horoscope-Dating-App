@@ -1,28 +1,23 @@
 import { useSignUp } from "@clerk/clerk-expo";
-import { Link, useRouter } from "expo-router";
+import { Link } from "expo-router";
 import { useState } from "react";
-import {
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
-} from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { CodeVerification } from "@/components/auth";
+import { GlassBackButton, GlassButton, GlassInput } from "@/components/glass";
 import { KeyboardAwareView } from "@/components/ui";
 import { hapticButtonPress } from "@/lib/haptics";
 import { useAppTheme } from "@/lib/theme";
 
 export default function SignUpScreen() {
   const { signUp, setActive, isLoaded } = useSignUp();
-  const router = useRouter();
   const { colors } = useAppTheme();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [pendingVerification, setPendingVerification] = useState(false);
-  const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -48,161 +43,101 @@ export default function SignUpScreen() {
     }
   };
 
-  const handleVerify = async () => {
+  const handleVerify = async (code: string) => {
     if (!isLoaded) return;
 
-    hapticButtonPress();
-    setLoading(true);
-    setError("");
+    const result = await signUp.attemptEmailAddressVerification({ code });
 
-    try {
-      const result = await signUp.attemptEmailAddressVerification({ code });
-
-      if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
-        // Navigate is handled from protected routes
-      }
-    } catch (err: any) {
-      setError(err.errors?.[0]?.message || "Verification failed");
-    } finally {
-      setLoading(false);
+    if (result.status === "complete") {
+      await setActive({ session: result.createdSessionId });
+      // Navigation is handled by protected routes
+    } else {
+      throw new Error(`Verification incomplete: ${result.status}`);
     }
   };
 
   if (pendingVerification) {
     return (
-      <SafeAreaView
-        style={[styles.container, { backgroundColor: colors.background }]}
-      >
-        <KeyboardAwareView style={styles.content}>
-          <View style={styles.header}>
-            <Text style={[styles.title, { color: colors.onBackground }]}>
-              Verify your email
-            </Text>
-            <Text style={[styles.subtitle, { color: colors.onSurfaceVariant }]}>
-              We sent a code to {email}
-            </Text>
-          </View>
-
-          <View style={styles.form}>
-            <TextInput
-              style={[
-                styles.input,
-                styles.codeInput,
-                {
-                  backgroundColor: colors.surfaceVariant,
-                  color: colors.onSurface,
-                  borderColor: colors.outline,
-                },
-              ]}
-              placeholder="Enter code"
-              placeholderTextColor={colors.onSurfaceVariant}
-              value={code}
-              onChangeText={setCode}
-              keyboardType="number-pad"
-              textAlign="center"
-            />
-
-            {error ? <Text style={styles.error}>{error}</Text> : null}
-
-            <TouchableOpacity
-              style={[
-                styles.button,
-                { backgroundColor: colors.primary },
-                loading && styles.buttonDisabled,
-              ]}
-              onPress={handleVerify}
-              disabled={loading}
-            >
-              <Text style={[styles.buttonText, { color: colors.onPrimary }]}>
-                {loading ? "Verifying..." : "Verify Email"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </KeyboardAwareView>
-      </SafeAreaView>
+      <CodeVerification
+        email={email}
+        title="Verify your email"
+        emoji="✉️"
+        onVerify={handleVerify}
+        onBack={() => setPendingVerification(false)}
+        buttonText="Verify Email"
+        backButtonText="Back to sign up"
+      />
     );
   }
+
+  const isValid = email.trim().length > 0 && password.length >= 6;
 
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
     >
-      <KeyboardAwareView style={styles.content}>
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.onBackground }]}>
-            Create account
-          </Text>
-          <Text style={[styles.subtitle, { color: colors.onSurfaceVariant }]}>
-            Start your journey to find meaningful connections
-          </Text>
-        </View>
+      <Animated.View entering={FadeInDown.delay(50).duration(400)} style={styles.backButtonContainer}>
+        <GlassBackButton />
+      </Animated.View>
 
-        <View style={styles.form}>
-          <TextInput
-            style={[
-              styles.input,
-              {
-                backgroundColor: colors.surfaceVariant,
-                color: colors.onSurface,
-                borderColor: colors.outline,
-              },
-            ]}
-            placeholder="Email"
-            placeholderTextColor={colors.onSurfaceVariant}
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            autoComplete="email"
-          />
-
-          <TextInput
-            style={[
-              styles.input,
-              {
-                backgroundColor: colors.surfaceVariant,
-                color: colors.onSurface,
-                borderColor: colors.outline,
-              },
-            ]}
-            placeholder="Password"
-            placeholderTextColor={colors.onSurfaceVariant}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            autoComplete="new-password"
-          />
-
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-
-          <TouchableOpacity
-            style={[
-              styles.button,
-              { backgroundColor: colors.primary },
-              loading && styles.buttonDisabled,
-            ]}
-            onPress={handleSignUp}
-            disabled={loading}
-          >
-            <Text style={[styles.buttonText, { color: colors.onPrimary }]}>
-              {loading ? "Creating account..." : "Create Account"}
+      <KeyboardAwareView style={styles.keyboardView}>
+        <View style={styles.content}>
+          <Animated.View entering={FadeInDown.delay(100).duration(500)} style={styles.header}>
+            <Text style={styles.emoji}>🎉</Text>
+            <Text style={[styles.title, { color: colors.onBackground }]}>
+              Create account
             </Text>
-          </TouchableOpacity>
+            <Text style={[styles.subtitle, { color: colors.onSurfaceVariant }]}>
+              Start your journey to find meaningful connections
+            </Text>
+          </Animated.View>
+
+          <Animated.View entering={FadeInDown.delay(200).duration(500)} style={styles.form}>
+            <GlassInput
+              placeholder="Email"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              autoComplete="email"
+            />
+
+            <GlassInput
+              placeholder="Password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              autoComplete="new-password"
+            />
+
+            {error ? (
+              <Animated.Text entering={FadeInDown.duration(300)} style={styles.error}>
+                {error}
+              </Animated.Text>
+            ) : null}
+          </Animated.View>
         </View>
 
-        <View style={styles.footer}>
-          <Text style={[styles.footerText, { color: colors.onSurfaceVariant }]}>
-            Already have an account?{" "}
-          </Text>
-          <Link href="/(auth)/sign-in" asChild>
-            <TouchableOpacity onPress={hapticButtonPress}>
-              <Text style={[styles.link, { color: colors.primary }]}>
-                Sign In
-              </Text>
-            </TouchableOpacity>
-          </Link>
-        </View>
+        <Animated.View entering={FadeInUp.delay(300).duration(500)} style={styles.footer}>
+          <GlassButton
+            onPress={handleSignUp}
+            label={loading ? "Creating account..." : "Create Account"}
+            disabled={loading || !isValid}
+          />
+
+          <View style={styles.footerLink}>
+            <Text style={[styles.footerText, { color: colors.onSurfaceVariant }]}>
+              Already have an account?{" "}
+            </Text>
+            <Link href="/(auth)/sign-in" asChild>
+              <TouchableOpacity onPress={hapticButtonPress}>
+                <Text style={[styles.link, { color: colors.primary }]}>
+                  Sign In
+                </Text>
+              </TouchableOpacity>
+            </Link>
+          </View>
+        </Animated.View>
       </KeyboardAwareView>
     </SafeAreaView>
   );
@@ -212,59 +147,51 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  backButtonContainer: {
+    paddingHorizontal: 24,
+    paddingTop: 8,
+  },
+  keyboardView: {
+    flex: 1,
+  },
   content: {
     flex: 1,
-    padding: 24,
-    justifyContent: "center",
+    paddingHorizontal: 24,
+    paddingTop: 24,
   },
   header: {
     marginBottom: 40,
+  },
+  emoji: {
+    fontSize: 48,
+    marginBottom: 16,
   },
   title: {
     fontSize: 32,
     fontWeight: "700",
     marginBottom: 8,
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 17,
+    lineHeight: 24,
   },
   form: {
     gap: 16,
-  },
-  input: {
-    height: 56,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    borderWidth: 1,
-  },
-  codeInput: {
-    fontSize: 24,
-    letterSpacing: 8,
   },
   error: {
     color: "#FF3B30",
     fontSize: 14,
     textAlign: "center",
   },
-  button: {
-    height: 56,
-    borderRadius: 28,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 8,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    fontSize: 17,
-    fontWeight: "600",
-  },
   footer: {
+    padding: 24,
+    gap: 16,
+  },
+  footerLink: {
     flexDirection: "row",
     justifyContent: "center",
-    marginTop: 32,
+    paddingVertical: 8,
   },
   footerText: {
     fontSize: 15,

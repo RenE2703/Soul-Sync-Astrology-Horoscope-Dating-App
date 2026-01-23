@@ -1,28 +1,25 @@
 import { useSignIn } from "@clerk/clerk-expo";
-import { Link, useRouter } from "expo-router";
+import { Link } from "expo-router";
 import { useState } from "react";
-import {
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
-} from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { CodeVerification } from "@/components/auth";
+import { GlassButton, GlassInput } from "@/components/glass";
 import { KeyboardAwareView } from "@/components/ui";
 import { hapticButtonPress } from "@/lib/haptics";
 import { useAppTheme } from "@/lib/theme";
 
 export default function SignInScreen() {
   const { signIn, setActive, isLoaded } = useSignIn();
-  const router = useRouter();
-  const { colors, isDark } = useAppTheme();
+  const { colors } = useAppTheme();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [needsSecondFactor, setNeedsSecondFactor] = useState(false);
 
   const handleSignIn = async () => {
     if (!isLoaded) return;
@@ -39,7 +36,15 @@ export default function SignInScreen() {
 
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
-        router.replace("/(app)/(tabs)");
+        // Navigation is handled automatically by Stack.Protected guards
+      } else if (result.status === "needs_second_factor") {
+        // User has 2FA enabled - prepare email code verification
+        await signIn.prepareSecondFactor({
+          strategy: "email_code",
+        });
+        setNeedsSecondFactor(true);
+      } else {
+        setError(`Sign in incomplete: ${result.status}`);
       }
     } catch (err: any) {
       setError(err.errors?.[0]?.message || "Failed to sign in");
@@ -48,85 +53,100 @@ export default function SignInScreen() {
     }
   };
 
+  const handleVerifySecondFactor = async (code: string) => {
+    if (!isLoaded) return;
+
+    const result = await signIn.attemptSecondFactor({
+      strategy: "email_code",
+      code,
+    });
+
+    if (result.status === "complete") {
+      await setActive({ session: result.createdSessionId });
+      // Navigation is handled automatically by Stack.Protected guards
+    } else {
+      throw new Error(`Verification incomplete: ${result.status}`);
+    }
+  };
+
+  // 2FA verification screen
+  if (needsSecondFactor) {
+    return (
+      <CodeVerification
+        email={email}
+        title="Verify your identity"
+        emoji="🛡️"
+        onVerify={handleVerifySecondFactor}
+        onBack={() => setNeedsSecondFactor(false)}
+        backButtonText="Back to sign in"
+      />
+    );
+  }
+
+  const isValid = email.trim().length > 0 && password.length >= 6;
+
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
     >
-      <KeyboardAwareView style={styles.content}>
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.onBackground }]}>
-            Welcome back
-          </Text>
-          <Text style={[styles.subtitle, { color: colors.onSurfaceVariant }]}>
-            Sign in to continue finding your match
-          </Text>
-        </View>
-
-        <View style={styles.form}>
-          <TextInput
-            style={[
-              styles.input,
-              {
-                backgroundColor: colors.surfaceVariant,
-                color: colors.onSurface,
-                borderColor: colors.outline,
-              },
-            ]}
-            placeholder="Email"
-            placeholderTextColor={colors.onSurfaceVariant}
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            autoComplete="email"
-          />
-
-          <TextInput
-            style={[
-              styles.input,
-              {
-                backgroundColor: colors.surfaceVariant,
-                color: colors.onSurface,
-                borderColor: colors.outline,
-              },
-            ]}
-            placeholder="Password"
-            placeholderTextColor={colors.onSurfaceVariant}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            autoComplete="password"
-          />
-
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-
-          <TouchableOpacity
-            style={[
-              styles.button,
-              { backgroundColor: colors.primary },
-              loading && styles.buttonDisabled,
-            ]}
-            onPress={handleSignIn}
-            disabled={loading}
-          >
-            <Text style={[styles.buttonText, { color: colors.onPrimary }]}>
-              {loading ? "Signing in..." : "Sign In"}
+      <KeyboardAwareView style={styles.keyboardView}>
+        <View style={styles.content}>
+          <Animated.View entering={FadeInDown.delay(100).duration(500)} style={styles.header}>
+            <Text style={styles.emoji}>👋</Text>
+            <Text style={[styles.title, { color: colors.onBackground }]}>
+              Welcome back
             </Text>
-          </TouchableOpacity>
+            <Text style={[styles.subtitle, { color: colors.onSurfaceVariant }]}>
+              Sign in to continue finding your match
+            </Text>
+          </Animated.View>
+
+          <Animated.View entering={FadeInDown.delay(200).duration(500)} style={styles.form}>
+            <GlassInput
+              placeholder="Email"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              autoComplete="email"
+            />
+
+            <GlassInput
+              placeholder="Password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              autoComplete="password"
+            />
+
+            {error ? (
+              <Animated.Text entering={FadeInDown.duration(300)} style={styles.error}>
+                {error}
+              </Animated.Text>
+            ) : null}
+          </Animated.View>
         </View>
 
-        <View style={styles.footer}>
-          <Text style={[styles.footerText, { color: colors.onSurfaceVariant }]}>
-            Don&apos;t have an account?{" "}
-          </Text>
-          <Link href="/(auth)/sign-up" asChild>
-            <TouchableOpacity onPress={hapticButtonPress}>
-              <Text style={[styles.link, { color: colors.primary }]}>
-                Sign Up
-              </Text>
-            </TouchableOpacity>
-          </Link>
-        </View>
+        <Animated.View entering={FadeInUp.delay(300).duration(500)} style={styles.footer}>
+          <GlassButton
+            onPress={handleSignIn}
+            label={loading ? "Signing in..." : "Sign In"}
+            disabled={loading || !isValid}
+          />
+
+          <View style={styles.footerLink}>
+            <Text style={[styles.footerText, { color: colors.onSurfaceVariant }]}>
+              Don&apos;t have an account?{" "}
+            </Text>
+            <Link href="/(auth)/sign-up" asChild>
+              <TouchableOpacity onPress={hapticButtonPress}>
+                <Text style={[styles.link, { color: colors.primary }]}>
+                  Sign Up
+                </Text>
+              </TouchableOpacity>
+            </Link>
+          </View>
+        </Animated.View>
       </KeyboardAwareView>
     </SafeAreaView>
   );
@@ -136,55 +156,47 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  keyboardView: {
+    flex: 1,
+  },
   content: {
     flex: 1,
-    padding: 24,
-    justifyContent: "center",
+    paddingHorizontal: 24,
+    paddingTop: 60,
   },
   header: {
     marginBottom: 40,
+  },
+  emoji: {
+    fontSize: 48,
+    marginBottom: 16,
   },
   title: {
     fontSize: 32,
     fontWeight: "700",
     marginBottom: 8,
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 17,
+    lineHeight: 24,
   },
   form: {
     gap: 16,
-  },
-  input: {
-    height: 56,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    borderWidth: 1,
   },
   error: {
     color: "#FF3B30",
     fontSize: 14,
     textAlign: "center",
   },
-  button: {
-    height: 56,
-    borderRadius: 28,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 8,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    fontSize: 17,
-    fontWeight: "600",
-  },
   footer: {
+    padding: 24,
+    gap: 16,
+  },
+  footerLink: {
     flexDirection: "row",
     justifyContent: "center",
-    marginTop: 32,
+    paddingVertical: 8,
   },
   footerText: {
     fontSize: 15,

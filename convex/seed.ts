@@ -45,11 +45,19 @@ export const createDemoUser = internalMutation({
     interests: v.array(v.string()),
     photos: v.array(v.string()),
     embedding: v.array(v.float64()),
+    location: v.object({
+      latitude: v.number(),
+      longitude: v.number(),
+    }),
+    maxDistance: v.optional(v.number()), // undefined = unlimited (no distance filter)
   },
   handler: async (ctx, args): Promise<Id<"users">> => {
     const now = Date.now();
+    // Only include maxDistance if it's defined
+    const { maxDistance, ...rest } = args;
     return await ctx.db.insert("users", {
-      ...args,
+      ...rest,
+      ...(maxDistance !== undefined && { maxDistance }),
       createdAt: now,
       updatedAt: now,
     });

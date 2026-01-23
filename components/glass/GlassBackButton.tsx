@@ -5,13 +5,22 @@ import { GlassView, supportsGlassEffect } from "@/lib/glass";
 import { hapticButtonPress } from "@/lib/haptics";
 import { useAppTheme } from "@/lib/theme";
 
-export function GlassBackButton() {
+interface GlassBackButtonProps {
+  /** Custom onPress handler. If not provided, navigates back using router.back() */
+  onPress?: () => void;
+}
+
+export function GlassBackButton({ onPress }: GlassBackButtonProps = {}) {
   const router = useRouter();
   const { colors } = useAppTheme();
 
   const handleBack = () => {
     hapticButtonPress();
-    router.back();
+    if (onPress) {
+      onPress();
+    } else {
+      router.back();
+    }
   };
 
   const content = (

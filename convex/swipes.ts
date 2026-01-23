@@ -149,8 +149,11 @@ export const getSwipeFeed = query({
       )
         return false;
 
-      // Check distance preferences (if current user has location and max distance set)
+      // Check distance preferences (bidirectional)
       if (!isWithinDistance(currentUser.location, user.location, currentUser.maxDistance)) {
+        return false;
+      }
+      if (!isWithinDistance(user.location, currentUser.location, user.maxDistance)) {
         return false;
       }
 

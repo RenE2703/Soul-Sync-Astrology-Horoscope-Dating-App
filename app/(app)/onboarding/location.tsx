@@ -9,12 +9,21 @@ import { hapticButtonPress, hapticSelection } from "@/lib/haptics";
 import { requestAndGetLocation } from "@/lib/location";
 import { useAppTheme } from "@/lib/theme";
 
+// Distance steps: 10, 25, 50, 100, Unlimited (undefined)
+const DISTANCE_STEPS: (number | undefined)[] = [10, 25, 50, 100, undefined];
+
+const getDistanceLabel = (distance: number | undefined): string => {
+  if (distance === undefined) return "Unlimited";
+  return `${distance} miles`;
+};
+
 export default function LocationScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { colors } = useAppTheme();
 
-  const [maxDistance, setMaxDistance] = useState(25);
+  // Store slider position (0-4), default to 25 miles (index 1)
+  const [distanceIndex, setDistanceIndex] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [locationGranted, setLocationGranted] = useState(false);
   const [locationCoords, setLocationCoords] = useState<{
@@ -22,11 +31,13 @@ export default function LocationScreen() {
     longitude: number;
   } | null>(null);
 
+  const maxDistance = DISTANCE_STEPS[distanceIndex];
+
   const handleDistanceChange = (value: number) => {
     const rounded = Math.round(value);
-    if (rounded !== maxDistance) {
+    if (rounded !== distanceIndex) {
       hapticSelection();
-      setMaxDistance(rounded);
+      setDistanceIndex(rounded);
     }
   };
 
@@ -54,7 +65,8 @@ export default function LocationScreen() {
       pathname: "/(app)/onboarding/bio",
       params: {
         ...params,
-        maxDistance: maxDistance.toString(),
+        // Only pass maxDistance if it's not unlimited
+        ...(maxDistance !== undefined && { maxDistance: maxDistance.toString() }),
         ...(locationCoords && {
           latitude: locationCoords.latitude.toString(),
           longitude: locationCoords.longitude.toString(),
@@ -69,7 +81,8 @@ export default function LocationScreen() {
       pathname: "/(app)/onboarding/bio",
       params: {
         ...params,
-        maxDistance: maxDistance.toString(),
+        // Only pass maxDistance if it's not unlimited
+        ...(maxDistance !== undefined && { maxDistance: maxDistance.toString() }),
       },
     });
   };
@@ -148,26 +161,26 @@ export default function LocationScreen() {
                 Maximum distance
               </Text>
               <Text style={[styles.sliderValue, { color: colors.primary }]}>
-                {maxDistance} miles
+                {getDistanceLabel(maxDistance)}
               </Text>
             </View>
             <Slider
               style={styles.slider}
-              minimumValue={5}
-              maximumValue={100}
-              value={maxDistance}
+              minimumValue={0}
+              maximumValue={DISTANCE_STEPS.length - 1}
+              value={distanceIndex}
               onValueChange={handleDistanceChange}
               minimumTrackTintColor={colors.primary}
               maximumTrackTintColor={colors.surfaceVariant}
               thumbTintColor={colors.primary}
-              step={5}
+              step={1}
             />
             <View style={styles.sliderLabels}>
               <Text style={[styles.sliderEndLabel, { color: colors.onSurfaceVariant }]}>
-                5 mi
+                10 mi
               </Text>
               <Text style={[styles.sliderEndLabel, { color: colors.onSurfaceVariant }]}>
-                100 mi
+                Unlimited
               </Text>
             </View>
           </View>
