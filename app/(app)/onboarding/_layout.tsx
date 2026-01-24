@@ -24,7 +24,7 @@ export default function OnboardingLayout() {
       <Stack.Screen name="bio" />
       <Stack.Screen name="interests" />
       <Stack.Screen name="photos" />
-      <Stack.Screen name="complete" options={{ gestureEnabled: false }} />
+      <Stack.Screen name="complete" options={{ gestureEnabled: false, headerShown: false }} />
     </Stack>
   );
 }

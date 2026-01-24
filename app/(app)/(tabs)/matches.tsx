@@ -3,7 +3,6 @@ import { useAction, useQuery } from "convex/react";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  Dimensions,
   FlatList,
   StyleSheet,
   Text,
@@ -18,13 +17,10 @@ import { Countdown, EmptyState, LoadingScreen } from "@/components/ui";
 
 import { api } from "@/convex/_generated/api";
 import { Doc, Id } from "@/convex/_generated/dataModel";
+import { CARD_SPACING, CARD_WIDTH } from "@/lib/constants";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { AdaptiveGlassView } from "@/lib/glass";
 import { useAppTheme } from "@/lib/theme";
-
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const CARD_WIDTH = SCREEN_WIDTH - 32; // Leave space for peek
-const CARD_SPACING = 12;
 
 // Types for daily picks data
 interface DailyPickWithUser {

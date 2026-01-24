@@ -8,7 +8,7 @@ import {
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 
 import { GlassButton, GlassTextArea } from "@/components/glass";
-import { KeyboardAwareView } from "@/components/ui";
+import { HeaderIcon, KeyboardAwareView } from "@/components/ui";
 import { useAppTheme } from "@/lib/theme";
 
 const MIN_BIO_LENGTH = 20;
@@ -36,7 +36,7 @@ export default function BioScreen() {
       <KeyboardAwareView style={styles.keyboardView}>
         <View style={styles.content}>
           <Animated.View entering={FadeInDown.delay(100).duration(500)} style={styles.questionContainer}>
-            <Text style={styles.emoji}>✍️</Text>
+            <HeaderIcon icon="create-outline" />
             <Text style={[styles.title, { color: colors.onBackground }]}>Write your bio</Text>
             <Text style={[styles.subtitle, { color: colors.onSurfaceVariant }]}>
               Tell potential matches about yourself
@@ -81,7 +81,6 @@ const styles = StyleSheet.create({
   keyboardView: { flex: 1 },
   content: { flex: 1, paddingHorizontal: 24, paddingTop: 24 },
   questionContainer: { marginBottom: 32 },
-  emoji: { fontSize: 48, marginBottom: 16 },
   title: { fontSize: 32, fontWeight: "700", marginBottom: 8, letterSpacing: -0.5 },
   subtitle: { fontSize: 17, lineHeight: 24 },
   inputContainer: { flex: 1 },

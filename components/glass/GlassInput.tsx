@@ -1,47 +1,73 @@
-import { StyleSheet, TextInput, TextInputProps, View } from "react-native";
+import { BlurView } from "expo-blur";
+import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
+import { TextInput, TextInputProps, View } from "react-native";
 
-import { AdaptiveGlassView } from "@/lib/glass";
 import { useAppTheme } from "@/lib/theme";
 
 type GlassInputProps = Omit<TextInputProps, "style">;
 
-export function GlassInput(props: GlassInputProps) {
-  const { colors } = useAppTheme();
+const containerStyle = {
+  height: 54,
+  borderRadius: 14,
+  borderCurve: "continuous" as const,
+  justifyContent: "center" as const,
+  overflow: "hidden" as const,
+};
 
-  return (
-    <View style={styles.container}>
-      <AdaptiveGlassView
-        style={styles.glassView}
-        isInteractive
-        fallbackStyle={styles.fallback}
+export function GlassInput(props: GlassInputProps) {
+  const { colors, isDark } = useAppTheme();
+
+  const textColor = isDark ? "#FFFFFF" : "#1A1A1A";
+  const placeholderColor = isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.4)";
+
+  const inputElement = (
+    <TextInput
+      style={{
+        flex: 1,
+        paddingHorizontal: 18,
+        fontSize: 17,
+        color: textColor,
+      }}
+      placeholderTextColor={placeholderColor}
+      {...props}
+    />
+  );
+
+  // iOS 26+ - use liquid glass
+  if (isLiquidGlassAvailable()) {
+    return (
+      <GlassView style={containerStyle} isInteractive>
+        {inputElement}
+      </GlassView>
+    );
+  }
+
+  // iOS < 26 - use blur with appropriate tint
+  if (process.env.EXPO_OS === "ios") {
+    return (
+      <BlurView
+        tint={isDark ? "systemThickMaterialDark" : "systemThinMaterial"}
+        intensity={60}
+        style={containerStyle}
       >
-        <TextInput
-          style={[styles.input, { color: colors.onSurface }]}
-          placeholderTextColor={colors.onSurfaceVariant}
-          {...props}
-        />
-      </AdaptiveGlassView>
+        {inputElement}
+      </BlurView>
+    );
+  }
+
+  // Android/web - subtle background
+  return (
+    <View
+      style={[
+        containerStyle,
+        {
+          backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)",
+          borderWidth: 1,
+          borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)",
+        },
+      ]}
+    >
+      {inputElement}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    // Container needed for proper glass rendering
-  },
-  glassView: {
-    height: 60,
-    borderRadius: 16,
-    justifyContent: "center",
-  },
-  fallback: {
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.08)",
-  },
-  input: {
-    flex: 1,
-    paddingHorizontal: 20,
-    fontSize: 18,
-    fontWeight: "500",
-  },
-});

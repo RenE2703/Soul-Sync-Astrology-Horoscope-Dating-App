@@ -5,6 +5,7 @@ import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 
 import { GlassButton } from "@/components/glass";
 import { DateOfBirthPicker, getDefaultDateOfBirth } from "@/components/preferences";
+import { HeaderIcon } from "@/components/ui";
 import { useAppTheme } from "@/lib/theme";
 
 export default function BirthdayScreen() {
@@ -25,7 +26,7 @@ export default function BirthdayScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.content}>
         <Animated.View entering={FadeInDown.delay(100).duration(500)} style={styles.questionContainer}>
-          <Text style={styles.emoji}>🎂</Text>
+          <HeaderIcon icon="calendar-outline" />
           <Text style={[styles.title, { color: colors.onBackground }]}>{"When's your birthday?"}</Text>
           <Text style={[styles.subtitle, { color: colors.onSurfaceVariant }]}>Your age will be shown on your profile</Text>
         </Animated.View>
@@ -46,7 +47,6 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { flex: 1, paddingHorizontal: 24, paddingTop: 24 },
   questionContainer: { marginBottom: 32 },
-  emoji: { fontSize: 48, marginBottom: 16 },
   title: { fontSize: 32, fontWeight: "700", marginBottom: 8, letterSpacing: -0.5 },
   subtitle: { fontSize: 17, lineHeight: 24 },
   pickerContainer: { alignItems: "center", gap: 24 },

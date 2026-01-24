@@ -2,7 +2,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { useEffect } from "react";
 import {
-    Dimensions,
     Image,
     Modal,
     StyleSheet,
@@ -20,11 +19,9 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { Doc } from "@/convex/_generated/dataModel";
-import { AppColors } from "@/lib/theme";
+import { SCREEN_WIDTH } from "@/lib/constants";
 import { hapticMatch } from "@/lib/haptics";
-import { useAppTheme } from "@/lib/theme";
-
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
+import { AppColors, useAppTheme } from "@/lib/theme";
 
 interface MatchModalProps {
   visible: boolean;

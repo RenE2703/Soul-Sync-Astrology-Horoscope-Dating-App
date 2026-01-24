@@ -72,3 +72,14 @@ export function getDefaultDateOfBirth(): Date {
   date.setFullYear(date.getFullYear() - 25);
   return date;
 }
+
+/**
+ * Build a profile text for embedding generation.
+ * Combines bio and interests into a single string for AI processing.
+ * @param bio - User's bio text
+ * @param interests - Array of user interests
+ * @returns Formatted profile text
+ */
+export function buildProfileText(bio: string, interests: string[]): string {
+  return `${bio} Interests: ${interests.join(", ")}`;
+}

@@ -3,9 +3,10 @@ import { StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { GlassBackButton } from "@/components/glass";
+import { AdaptiveGlassView } from "@/lib/glass";
 import { useAppTheme } from "@/lib/theme";
 
-const STEPS = ["name", "birthday", "gender", "looking-for", "age-range", "bio", "interests", "photos", "complete"];
+const STEPS = ["name", "birthday", "gender", "looking-for", "age-range", "location", "bio", "interests", "photos", "complete"];
 
 export function OnboardingHeader() {
   const { colors } = useAppTheme();
@@ -25,7 +26,10 @@ export function OnboardingHeader() {
   if (isComplete) return null;
 
   return (
-    <View style={[styles.header, { paddingTop: insets.top + 8, backgroundColor: colors.background }]}>
+    <AdaptiveGlassView
+      style={[styles.header, { paddingTop: insets.top + 8 }]}
+      fallbackColor={colors.background}
+    >
       <View style={styles.row}>
         {/* No button on first step - onboarding is mandatory for new users */}
         {isFirstStep ? <View style={styles.placeholder} /> : <GlassBackButton />}
@@ -45,14 +49,13 @@ export function OnboardingHeader() {
           {step}/{totalSteps}
         </Text>
       </View>
-    </View>
+    </AdaptiveGlassView>
   );
 }
 
 const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 24,
-    paddingBottom: 16,
   },
   row: {
     flexDirection: "row",

@@ -3,7 +3,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Dimensions,
   Image,
   ScrollView,
   StyleSheet,
@@ -15,10 +14,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { PhotoIndicators, PhotoTapZones } from "@/components/ui";
 import { Doc } from "@/convex/_generated/dataModel";
+import { SCREEN_HEIGHT } from "@/lib/constants";
 import { hapticButtonPress } from "@/lib/haptics";
 import { useAppTheme } from "@/lib/theme";
-
-const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 interface DailyPickCardProps {
   user: Doc<"users">;

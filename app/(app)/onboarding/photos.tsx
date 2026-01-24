@@ -1,5 +1,3 @@
-import { useMutation } from "convex/react";
-import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -12,7 +10,8 @@ import {
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 
 import { GlassButton } from "@/components/glass";
-import { api } from "@/convex/_generated/api";
+import { HeaderIcon } from "@/components/ui";
+import { usePhotoPicker } from "@/hooks/usePhotoPicker";
 import { hapticButtonPress, hapticSelection } from "@/lib/haptics";
 import { useAppTheme } from "@/lib/theme";
 
@@ -27,51 +26,20 @@ export default function PhotosScreen() {
   const [photos, setPhotos] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
-  const generateUploadUrl = useMutation(api.files.generateUploadUrl);
+  const { pickImage: pickImageFromLibrary, uploadPhotos } = usePhotoPicker({ maxPhotos: MAX_PHOTOS });
 
-  const pickImage = async () => {
+  const handlePickImage = async () => {
     if (photos.length >= MAX_PHOTOS) return;
 
-    hapticSelection();
-
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permissionResult.granted) {
-      alert("Permission to access photos is required!");
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsEditing: true,
-      aspect: [3, 4],
-      quality: 0.8,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      // Just store the local URI for now - upload happens on continue
-      setPhotos((prev) => [...prev, result.assets[0].uri]);
-      hapticButtonPress();
+    const uri = await pickImageFromLibrary();
+    if (uri) {
+      setPhotos((prev) => [...prev, uri]);
     }
   };
 
   const removePhoto = (index: number) => {
     hapticSelection();
     setPhotos((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const uploadPhoto = async (uri: string): Promise<string> => {
-    const uploadUrl = await generateUploadUrl();
-    const response = await fetch(uri);
-    const blob = await response.blob();
-
-    const uploadResponse = await fetch(uploadUrl, {
-      method: "POST",
-      headers: { "Content-Type": blob.type },
-      body: blob,
-    });
-
-    const { storageId } = await uploadResponse.json();
-    return storageId; // Store the storage ID, not the URL
   };
 
   const isValid = photos.length >= 1;
@@ -84,7 +52,7 @@ export default function PhotosScreen() {
 
     try {
       // Upload all photos in parallel and get their storage IDs
-      const photoStorageIds = await Promise.all(photos.map(uploadPhoto));
+      const photoStorageIds = await uploadPhotos(photos);
 
       router.push({
         pathname: "/(app)/onboarding/complete",
@@ -102,7 +70,7 @@ export default function PhotosScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.content}>
         <Animated.View entering={FadeInDown.delay(100).duration(500)} style={styles.questionContainer}>
-          <Text style={styles.emoji}>📸</Text>
+          <HeaderIcon icon="camera-outline" />
           <Text style={[styles.title, { color: colors.onBackground }]}>Add your photos</Text>
           <Text style={[styles.subtitle, { color: colors.onSurfaceVariant }]}>
             Add at least 1 photo to continue. You can add up to {MAX_PHOTOS}.
@@ -122,7 +90,7 @@ export default function PhotosScreen() {
                   isMain && styles.mainPhotoSlot,
                   { backgroundColor: colors.surfaceVariant, borderColor: colors.outline },
                 ]}
-                onPress={() => (photo ? removePhoto(index) : pickImage())}
+                onPress={() => (photo ? removePhoto(index) : handlePickImage())}
                 disabled={isUploading || (!photo && photos.length !== index)}
                 activeOpacity={0.8}
               >
@@ -176,7 +144,6 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { flex: 1, paddingHorizontal: 24, paddingTop: 24 },
   questionContainer: { marginBottom: 32 },
-  emoji: { fontSize: 48, marginBottom: 16 },
   title: { fontSize: 32, fontWeight: "700", marginBottom: 8, letterSpacing: -0.5 },
   subtitle: { fontSize: 17, lineHeight: 24 },
   photosGrid: {

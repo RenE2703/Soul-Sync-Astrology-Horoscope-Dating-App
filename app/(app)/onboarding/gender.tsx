@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { GenderSelector } from "@/components/preferences";
+import { HeaderIcon } from "@/components/ui";
 import { type Gender } from "@/lib/constants/preferences";
 import { useAppTheme } from "@/lib/theme";
 
@@ -22,7 +23,7 @@ export default function GenderScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.content}>
         <Animated.View entering={FadeInDown.delay(100).duration(500)} style={styles.questionContainer}>
-          <Text style={styles.emoji}>✨</Text>
+          <HeaderIcon icon="person-outline" />
           <Text style={[styles.title, { color: colors.onBackground }]}>I am a...</Text>
           <Text style={[styles.subtitle, { color: colors.onSurfaceVariant }]}>Select your gender identity</Text>
         </Animated.View>
@@ -37,7 +38,6 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { flex: 1, paddingHorizontal: 24, paddingTop: 24 },
   questionContainer: { marginBottom: 40 },
-  emoji: { fontSize: 48, marginBottom: 16 },
   title: { fontSize: 32, fontWeight: "700", marginBottom: 8, letterSpacing: -0.5 },
   subtitle: { fontSize: 17, lineHeight: 24 },
 });

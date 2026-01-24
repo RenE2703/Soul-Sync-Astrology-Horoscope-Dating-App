@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 import { hapticButtonPress } from "@/lib/haptics";
+import { shadowMedium } from "@/lib/styles";
 import { useAppTheme } from "@/lib/theme";
 
 interface ActionButtonsProps {
@@ -86,11 +87,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#fff",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
+    ...shadowMedium,
   },
   rejectButton: {
     borderWidth: 2,

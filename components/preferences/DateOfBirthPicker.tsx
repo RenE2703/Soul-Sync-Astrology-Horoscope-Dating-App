@@ -1,53 +1,22 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Platform, StyleSheet, Text, View } from "react-native";
 
+import {
+  calculateAgeFromDate,
+  getDefaultDateOfBirth,
+  getMaxDateOfBirth,
+  getMinDateOfBirth,
+} from "@/lib/dateUtils";
 import { hapticSelection } from "@/lib/haptics";
 import { useAppTheme } from "@/lib/theme";
+
+// Re-export for backward compatibility
+export { calculateAgeFromDate, getDefaultDateOfBirth } from "@/lib/dateUtils";
 
 interface DateOfBirthPickerProps {
   value: Date;
   onChange: (date: Date) => void;
   showAgeCard?: boolean;
-}
-
-/**
- * Get the minimum valid date of birth (99 years ago)
- */
-function getMinDate(): Date {
-  const date = new Date();
-  date.setFullYear(date.getFullYear() - 99);
-  return date;
-}
-
-/**
- * Get the maximum valid date of birth (18 years ago - minimum age)
- */
-function getMaxDate(): Date {
-  const date = new Date();
-  date.setFullYear(date.getFullYear() - 18);
-  return date;
-}
-
-/**
- * Calculate age from a date
- */
-export function calculateAgeFromDate(date: Date): number {
-  const today = new Date();
-  let age = today.getFullYear() - date.getFullYear();
-  const monthDiff = today.getMonth() - date.getMonth();
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < date.getDate())) {
-    age--;
-  }
-  return age;
-}
-
-/**
- * Get a default date of birth (25 years ago)
- */
-export function getDefaultDateOfBirth(): Date {
-  const date = new Date();
-  date.setFullYear(date.getFullYear() - 25);
-  return date;
 }
 
 export function DateOfBirthPicker({ 
@@ -79,8 +48,8 @@ export function DateOfBirthPicker({
           mode="date"
           display={Platform.OS === "ios" ? "spinner" : "default"}
           onChange={handleChange}
-          maximumDate={getMaxDate()}
-          minimumDate={getMinDate()}
+          maximumDate={getMaxDateOfBirth()}
+          minimumDate={getMinDateOfBirth()}
           themeVariant="light"
           style={styles.datePicker}
         />

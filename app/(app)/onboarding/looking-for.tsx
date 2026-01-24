@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 import { LookingForSelector } from "@/components/preferences";
+import { HeaderIcon } from "@/components/ui";
 import { useAppTheme } from "@/lib/theme";
 
 export default function LookingForScreen() {
@@ -21,7 +22,7 @@ export default function LookingForScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.content}>
         <Animated.View entering={FadeInDown.delay(100).duration(500)} style={styles.questionContainer}>
-          <Text style={styles.emoji}>💕</Text>
+          <HeaderIcon icon="heart-outline" />
           <Text style={[styles.title, { color: colors.onBackground }]}>{"I'm interested in..."}</Text>
           <Text style={[styles.subtitle, { color: colors.onSurfaceVariant }]}>Who would you like to meet?</Text>
         </Animated.View>
@@ -36,7 +37,6 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { flex: 1, paddingHorizontal: 24, paddingTop: 24 },
   questionContainer: { marginBottom: 40 },
-  emoji: { fontSize: 48, marginBottom: 16 },
   title: { fontSize: 32, fontWeight: "700", marginBottom: 8, letterSpacing: -0.5 },
   subtitle: { fontSize: 17, lineHeight: 24 },
 });

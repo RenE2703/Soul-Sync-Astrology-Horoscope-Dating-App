@@ -1,7 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import Slider from "@react-native-community/slider";
 import { useMutation, useQuery } from "convex/react";
-import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { Stack, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -19,21 +17,27 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GlassCloseButton, GlassHeader, GlassOption } from "@/components/glass";
 import {
   DateOfBirthPicker,
+  DistanceSlider,
+  DISTANCE_STEPS,
   calculateAgeFromDate,
   getDefaultDateOfBirth,
+  getDistanceIndex,
 } from "@/components/preferences";
 import { PhotoItem } from "@/components/profile";
 import { KeyboardAwareView } from "@/components/ui";
 import { api } from "@/convex/_generated/api";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { usePhotoPicker } from "@/hooks/usePhotoPicker";
 import {
   GENDERS,
+  INTEREST_NAMES,
   LOOKING_FOR_OPTIONS,
+  MAX_INTERESTS,
   arrayToLookingFor,
   lookingForToArray,
   type Gender,
   type LookingForOption,
-} from "@/lib/constants/preferences";
+} from "@/lib/constants";
 import { AdaptiveGlassView, supportsGlassEffect } from "@/lib/glass";
 import { hapticButtonPress, hapticSelection, hapticSuccess } from "@/lib/haptics";
 import {
@@ -42,34 +46,6 @@ import {
   type LocationInfo,
 } from "@/lib/location";
 import { AppColors, useAppTheme } from "@/lib/theme";
-
-const INTERESTS = [
-  "Travel", "Music", "Fitness", "Photography", "Cooking", "Reading",
-  "Movies", "Art", "Gaming", "Hiking", "Yoga", "Dancing",
-  "Coffee", "Wine", "Pets", "Sports", "Nature", "Beach", "Fashion", "Foodie",
-];
-
-// Distance steps: 10, 25, 50, 100, Unlimited (undefined)
-const DISTANCE_STEPS: (number | undefined)[] = [10, 25, 50, 100, undefined];
-
-const getDistanceLabel = (distance: number | undefined): string => {
-  if (distance === undefined) return "Unlimited";
-  return `${distance} miles`;
-};
-
-const getDistanceIndex = (distance: number | undefined): number => {
-  if (distance === undefined) return DISTANCE_STEPS.length - 1;
-  const index = DISTANCE_STEPS.indexOf(distance);
-  // If exact match not found, find closest step
-  if (index === -1) {
-    for (let i = 0; i < DISTANCE_STEPS.length - 1; i++) {
-      const step = DISTANCE_STEPS[i];
-      if (step !== undefined && distance <= step) return i;
-    }
-    return DISTANCE_STEPS.length - 2; // Default to 100 if not unlimited
-  }
-  return index;
-};
 
 interface PhotoEntry {
   uri: string;
@@ -90,7 +66,7 @@ export default function EditProfileScreen() {
   );
 
   const updateProfile = useMutation(api.users.updateProfile);
-  const generateUploadUrl = useMutation(api.files.generateUploadUrl);
+  const { pickImage: pickImageFromLibrary, uploadPhoto } = usePhotoPicker();
 
   const [name, setName] = useState("");
   const [bio, setBio] = useState("");
@@ -154,7 +130,7 @@ export default function EditProfileScreen() {
       if (prev.includes(interest)) {
         return prev.filter((i) => i !== interest);
       }
-      if (prev.length < 6) {
+      if (prev.length < MAX_INTERESTS) {
         return [...prev, interest];
       }
       return prev;
@@ -164,48 +140,15 @@ export default function EditProfileScreen() {
   const pickImage = async () => {
     if (photos.length >= 6) return;
 
-    hapticSelection();
-
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permissionResult.granted) {
-      alert("Permission to access photos is required!");
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsEditing: true,
-      aspect: [3, 4],
-      quality: 0.8,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      setPhotos((prev) => [
-        ...prev,
-        { uri: result.assets[0].uri, isNew: true },
-      ]);
-      hapticButtonPress();
+    const uri = await pickImageFromLibrary();
+    if (uri) {
+      setPhotos((prev) => [...prev, { uri, isNew: true }]);
     }
   };
 
   const removePhoto = (index: number) => {
     hapticSelection();
     setPhotos((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const uploadPhoto = async (uri: string): Promise<string> => {
-    const uploadUrl = await generateUploadUrl();
-    const response = await fetch(uri);
-    const blob = await response.blob();
-
-    const uploadResponse = await fetch(uploadUrl, {
-      method: "POST",
-      headers: { "Content-Type": blob.type },
-      body: blob,
-    });
-
-    const { storageId } = await uploadResponse.json();
-    return storageId; // Store the storage ID, not the URL
   };
 
   const handleSave = async () => {
@@ -267,14 +210,6 @@ export default function EditProfileScreen() {
       console.error("Failed to update location:", error);
     } finally {
       setIsUpdatingLocation(false);
-    }
-  };
-
-  const handleDistanceChange = (value: number) => {
-    const rounded = Math.round(value);
-    if (rounded !== distanceIndex) {
-      hapticSelection();
-      setDistanceIndex(rounded);
     }
   };
 
@@ -427,10 +362,10 @@ export default function EditProfileScreen() {
             {/* Interests Section */}
             <View style={styles.section}>
               <Text style={[styles.sectionLabel, { color: colors.onSurfaceVariant }]}>
-                INTERESTS ({interests.length}/6)
+                INTERESTS ({interests.length}/{MAX_INTERESTS})
               </Text>
               <View style={styles.interestsGrid}>
-                {INTERESTS.map((interest) => {
+                {INTEREST_NAMES.map((interest) => {
                   const isSelected = interests.includes(interest);
 
                   return (
@@ -509,33 +444,7 @@ export default function EditProfileScreen() {
 
               {/* Distance Slider */}
               <View style={styles.distanceSection}>
-                <View style={styles.distanceHeader}>
-                  <Text style={[styles.distanceLabel, { color: colors.onSurfaceVariant }]}>
-                    Maximum distance
-                  </Text>
-                  <Text style={[styles.distanceValue, { color: colors.primary }]}>
-                    {getDistanceLabel(maxDistance)}
-                  </Text>
-                </View>
-                <Slider
-                  style={styles.slider}
-                  minimumValue={0}
-                  maximumValue={DISTANCE_STEPS.length - 1}
-                  value={distanceIndex}
-                  onValueChange={handleDistanceChange}
-                  minimumTrackTintColor={colors.primary}
-                  maximumTrackTintColor={colors.surfaceVariant}
-                  thumbTintColor={colors.primary}
-                  step={1}
-                />
-                <View style={styles.sliderLabels}>
-                  <Text style={[styles.sliderEndLabel, { color: colors.onSurfaceVariant }]}>
-                    10 mi
-                  </Text>
-                  <Text style={[styles.sliderEndLabel, { color: colors.onSurfaceVariant }]}>
-                    Unlimited
-                  </Text>
-                </View>
+                <DistanceSlider value={distanceIndex} onChange={setDistanceIndex} />
               </View>
             </View>
 
@@ -754,33 +663,6 @@ const styles = StyleSheet.create({
   },
   distanceSection: {
     marginTop: 8,
-  },
-  distanceHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  distanceLabel: {
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  distanceValue: {
-    fontSize: 20,
-    fontWeight: "700",
-  },
-  slider: {
-    width: "100%",
-    height: 40,
-  },
-  sliderLabels: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: -8,
-  },
-  sliderEndLabel: {
-    fontSize: 12,
-    fontWeight: "500",
   },
   // Footer
   footer: { 

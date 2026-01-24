@@ -1,6 +1,5 @@
 import { useCallback } from "react";
 import {
-    Dimensions,
     Image,
     Pressable,
     StyleSheet,
@@ -19,12 +18,9 @@ import Animated, {
 import { scheduleOnRN } from "react-native-worklets";
 
 import { Doc } from "@/convex/_generated/dataModel";
+import { ROTATION_ANGLE, SCREEN_HEIGHT, SCREEN_WIDTH, SWIPE_THRESHOLD } from "@/lib/constants";
 import { hapticLike, hapticReject, hapticSwipe } from "@/lib/haptics";
 import { useAppTheme } from "@/lib/theme";
-
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
-const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.3;
-const ROTATION_ANGLE = 15;
 
 interface SwipeCardProps {
   user: Doc<"users">;

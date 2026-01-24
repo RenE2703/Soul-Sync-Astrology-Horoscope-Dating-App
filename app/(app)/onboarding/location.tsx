@@ -1,21 +1,15 @@
-import Slider from "@react-native-community/slider";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 
 import { GlassButton } from "@/components/glass";
-import { hapticButtonPress, hapticSelection } from "@/lib/haptics";
+import { DistanceSlider, DISTANCE_STEPS } from "@/components/preferences";
+import { HeaderIcon } from "@/components/ui";
+import { AdaptiveGlassView } from "@/lib/glass";
+import { hapticButtonPress } from "@/lib/haptics";
 import { requestAndGetLocation, type LocationInfo } from "@/lib/location";
 import { useAppTheme } from "@/lib/theme";
-
-// Distance steps: 10, 25, 50, 100, Unlimited (undefined)
-const DISTANCE_STEPS: (number | undefined)[] = [10, 25, 50, 100, undefined];
-
-const getDistanceLabel = (distance: number | undefined): string => {
-  if (distance === undefined) return "Unlimited";
-  return `${distance} miles`;
-};
 
 export default function LocationScreen() {
   const router = useRouter();
@@ -33,14 +27,6 @@ export default function LocationScreen() {
   const [locationInfo, setLocationInfo] = useState<LocationInfo | null>(null);
 
   const maxDistance = DISTANCE_STEPS[distanceIndex];
-
-  const handleDistanceChange = (value: number) => {
-    const rounded = Math.round(value);
-    if (rounded !== distanceIndex) {
-      hapticSelection();
-      setDistanceIndex(rounded);
-    }
-  };
 
   const handleEnableLocation = async () => {
     hapticButtonPress();
@@ -96,7 +82,7 @@ export default function LocationScreen() {
           entering={FadeInDown.delay(100).duration(500)}
           style={styles.questionContainer}
         >
-          <Text style={styles.emoji}>📍</Text>
+          <HeaderIcon icon="location-outline" />
           <Text style={[styles.title, { color: colors.onBackground }]}>
             Enable location
           </Text>
@@ -110,15 +96,9 @@ export default function LocationScreen() {
           style={styles.locationContainer}
         >
           {/* Location Status */}
-          <View
-            style={[
-              styles.statusCard,
-              {
-                backgroundColor: locationGranted
-                  ? colors.primaryContainer
-                  : colors.surfaceVariant,
-              },
-            ]}
+          <AdaptiveGlassView
+            style={styles.statusCard}
+            fallbackColor={locationGranted ? colors.primaryContainer : colors.surfaceVariant}
           >
             <Text style={styles.statusEmoji}>
               {locationGranted ? "✅" : "📍"}
@@ -149,7 +129,7 @@ export default function LocationScreen() {
                 </Text>
               )}
             </View>
-          </View>
+          </AdaptiveGlassView>
 
           {/* Enable Location Button */}
           {!locationGranted && (
@@ -170,33 +150,7 @@ export default function LocationScreen() {
 
           {/* Distance Slider */}
           <View style={styles.sliderSection}>
-            <View style={styles.sliderHeader}>
-              <Text style={[styles.sliderLabel, { color: colors.onSurfaceVariant }]}>
-                Maximum distance
-              </Text>
-              <Text style={[styles.sliderValue, { color: colors.primary }]}>
-                {getDistanceLabel(maxDistance)}
-              </Text>
-            </View>
-            <Slider
-              style={styles.slider}
-              minimumValue={0}
-              maximumValue={DISTANCE_STEPS.length - 1}
-              value={distanceIndex}
-              onValueChange={handleDistanceChange}
-              minimumTrackTintColor={colors.primary}
-              maximumTrackTintColor={colors.surfaceVariant}
-              thumbTintColor={colors.primary}
-              step={1}
-            />
-            <View style={styles.sliderLabels}>
-              <Text style={[styles.sliderEndLabel, { color: colors.onSurfaceVariant }]}>
-                10 mi
-              </Text>
-              <Text style={[styles.sliderEndLabel, { color: colors.onSurfaceVariant }]}>
-                Unlimited
-              </Text>
-            </View>
+            <DistanceSlider value={distanceIndex} onChange={setDistanceIndex} />
           </View>
         </Animated.View>
       </View>
@@ -226,7 +180,6 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { flex: 1, paddingHorizontal: 24, paddingTop: 24 },
   questionContainer: { marginBottom: 40 },
-  emoji: { fontSize: 48, marginBottom: 16 },
   title: {
     fontSize: 32,
     fontWeight: "700",
@@ -259,21 +212,6 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
   sliderSection: { marginTop: 8 },
-  sliderHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  sliderLabel: { fontSize: 16, fontWeight: "500" },
-  sliderValue: { fontSize: 20, fontWeight: "700" },
-  slider: { width: "100%", height: 40 },
-  sliderLabels: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: -8,
-  },
-  sliderEndLabel: { fontSize: 12, fontWeight: "500" },
   footer: { padding: 24, gap: 16 },
   skipButton: {
     alignItems: "center",

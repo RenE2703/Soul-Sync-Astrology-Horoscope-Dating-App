@@ -5,33 +5,8 @@ import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 
 import { GlassButton, GlassChip } from "@/components/glass";
 import { HeaderIcon } from "@/components/ui";
+import { INTERESTS, MAX_INTERESTS, MIN_INTERESTS } from "@/lib/constants";
 import { useAppTheme } from "@/lib/theme";
-
-const INTERESTS = [
-  { name: "Travel", emoji: "✈️" },
-  { name: "Music", emoji: "🎵" },
-  { name: "Fitness", emoji: "💪" },
-  { name: "Photography", emoji: "📸" },
-  { name: "Cooking", emoji: "👨‍🍳" },
-  { name: "Reading", emoji: "📚" },
-  { name: "Movies", emoji: "🎬" },
-  { name: "Art", emoji: "🎨" },
-  { name: "Gaming", emoji: "🎮" },
-  { name: "Hiking", emoji: "🥾" },
-  { name: "Yoga", emoji: "🧘" },
-  { name: "Dancing", emoji: "💃" },
-  { name: "Coffee", emoji: "☕" },
-  { name: "Wine", emoji: "🍷" },
-  { name: "Pets", emoji: "🐕" },
-  { name: "Sports", emoji: "⚽" },
-  { name: "Nature", emoji: "🌿" },
-  { name: "Beach", emoji: "🏖️" },
-  { name: "Fashion", emoji: "👗" },
-  { name: "Foodie", emoji: "🍜" },
-];
-
-const MIN_INTERESTS = 3;
-const MAX_INTERESTS = 6;
 
 export default function InterestsScreen() {
   const router = useRouter();

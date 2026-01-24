@@ -11,7 +11,7 @@ import {
 } from "./_generated/server";
 import { generateEmbedding } from "./lib/openai";
 import { withResolvedPhotos } from "./lib/photos";
-import { calculateAge } from "./lib/utils";
+import { buildProfileText, calculateAge } from "./lib/utils";
 
 // Get user by Clerk ID (with resolved photo URLs)
 export const getByClerkId = query({
@@ -123,7 +123,7 @@ export const createProfileWithEmbedding = action({
   },
   handler: async (ctx, args): Promise<Id<"users">> => {
     // Combine profile data for embedding
-    const profileText: string = `${args.bio} Interests: ${args.interests.join(", ")}`;
+    const profileText = buildProfileText(args.bio, args.interests);
 
     // Generate embedding using OpenAI
     const embedding: number[] = await generateEmbedding(profileText);
@@ -216,7 +216,7 @@ export const updateEmbeddingInternal_action = internalAction({
 
     if (!user) throw new Error("User not found");
 
-    const profileText: string = `${user.bio} Interests: ${user.interests.join(", ")}`;
+    const profileText = buildProfileText(user.bio, user.interests);
 
     const embedding: number[] = await generateEmbedding(profileText);
 

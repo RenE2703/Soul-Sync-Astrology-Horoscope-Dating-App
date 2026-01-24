@@ -2,7 +2,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useState } from "react";
 import {
-  Dimensions,
   Image,
   ScrollView,
   StyleSheet,
@@ -15,10 +14,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GlassNavButton } from "@/components/glass";
 import { PhotoIndicators, PhotoTapZones } from "@/components/ui";
 import { Doc } from "@/convex/_generated/dataModel";
+import { SCREEN_HEIGHT, SCREEN_WIDTH } from "@/lib/constants";
 import { AdaptiveGlassView } from "@/lib/glass";
 import { useAppTheme } from "@/lib/theme";
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const PHOTO_HEIGHT = SCREEN_HEIGHT * 0.55;
 
 interface ProfileViewProps {

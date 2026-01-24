@@ -4,7 +4,7 @@ import { Id } from "./_generated/dataModel";
 import { action, internalMutation } from "./_generated/server";
 import { areUsersCompatible } from "./lib/compatibility";
 import { generateEmbedding } from "./lib/openai";
-import { calculateAge, getAllMatchesForUser } from "./lib/utils";
+import { buildProfileText, calculateAge, getAllMatchesForUser } from "./lib/utils";
 import { demoProfiles } from "./sampleData/demoProfiles";
 
 /**
@@ -86,7 +86,7 @@ export const seedDemoProfiles = action({
 
     for (const profile of demoProfiles) {
       // Generate embedding for profile
-      const profileText = `${profile.bio} Interests: ${profile.interests.join(", ")}`;
+      const profileText = buildProfileText(profile.bio, profile.interests);
 
       let embedding: number[];
       try {
