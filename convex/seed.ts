@@ -4,7 +4,11 @@ import { Id } from "./_generated/dataModel";
 import { action, internalMutation } from "./_generated/server";
 import { areUsersCompatible } from "./lib/compatibility";
 import { generateEmbedding } from "./lib/openai";
-import { buildProfileText, calculateAge, getAllMatchesForUser } from "./lib/utils";
+import {
+  buildProfileText,
+  calculateAge,
+  getAllMatchesForUser,
+} from "./lib/utils";
 import { demoProfiles } from "./sampleData/demoProfiles";
 
 /**
