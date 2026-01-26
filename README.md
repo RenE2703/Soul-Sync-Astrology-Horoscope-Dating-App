@@ -74,13 +74,13 @@ This project exists to help developers learn React Native, AI integration, and r
 
 Clerk handles all your authentication - sign up, sign in, protected routes, and user management. It's incredibly easy to set up and saves you weeks of work.
 
-[**Sign up for Clerk**](https://clerk.com) - Free tier available
+[**Sign up for Clerk**](https://go.clerk.com/aV0wpm7) - Free tier available
 
 ### Step 2: Get Expo & EAS (Development Builds)
 
 Expo is how we build and deploy React Native apps. You'll need an Expo account to create development builds and submit to app stores.
 
-[**Sign up for Expo**](https://expo.dev) - Free tier available
+[**Sign up for Expo**](https://expo.dev/?utm_source=youtube&utm_medium=sonny&utm_campaign=35663643-SDK%2055&utm_content=home) - Free tier available
 
 ### Also Required (Standard Links)
 
@@ -135,6 +135,10 @@ Think of Heartly as a **Tinder-style dating app with an AI matchmaker built in**
 ### Join the Course
 
 [**www.papareact.com/course**](https://www.papareact.com/course)
+
+### Get the Source Code
+
+[**Download the source code here**](https://www.papareact.com/ai-dating-build-form)
 
 ---
 
@@ -230,8 +234,8 @@ Before you begin, make sure you have:
 #### 1. Clone the Repository
 
 ```bash
-git clone <your-repo-url>
-cd ai-dating-app
+git clone https://github.com/sonnysangha/AI-Dating-App-Expo-SDK-55-Clerk-Convex-OpenAI
+cd AI-Dating-App-Expo-SDK-55-Clerk-Convex-OpenAI
 ```
 
 #### 2. Install Dependencies
@@ -248,7 +252,7 @@ cp .env.example .env.local
 
 #### 4. Configure Clerk
 
-> Don't have Clerk yet? [**Sign up here**](https://clerk.com) - it's free to start!
+> Don't have Clerk yet? [**Sign up here**](https://go.clerk.com/aV0wpm7) - it's free to start!
 
 1. Go to [Clerk Dashboard](https://dashboard.clerk.com)
 2. Create a new application
@@ -287,7 +291,7 @@ EXPO_PUBLIC_CONVEX_URL=https://your-deployment.convex.cloud
 
 #### 7. Create Development Build
 
-> Don't have an Expo account? [**Sign up here**](https://expo.dev) - required for EAS builds!
+> Don't have an Expo account? [**Sign up here**](https://expo.dev/?utm_source=youtube&utm_medium=sonny&utm_campaign=35663643-SDK%2055&utm_content=home) - required for EAS builds!
 
 ```bash
 npx eas build --profile development --platform ios
