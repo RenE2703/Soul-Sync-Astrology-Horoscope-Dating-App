@@ -213,7 +213,7 @@ export default function SignUpScreen() {
                 <SymbolView name="heart.fill" size={36} tintColor="#FFFFFF" />
               </LinearGradient>
             </View>
-            <Text style={styles.logoText}>Join Heartly</Text>
+            <Text style={styles.logoText}>Join SoulSync</Text>
           </Animated.View>
 
           {/* Welcome Section */}

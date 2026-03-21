@@ -8,7 +8,11 @@
  * @module
  */
 
+import type * as clear from "../clear.js";
+import type * as debug from "../debug.js";
 import type * as files from "../files.js";
+import type * as force from "../force.js";
+import type * as lib_astrology from "../lib/astrology.js";
 import type * as lib_compatibility from "../lib/compatibility.js";
 import type * as lib_distance from "../lib/distance.js";
 import type * as lib_openai from "../lib/openai.js";
@@ -19,6 +23,8 @@ import type * as messages from "../messages.js";
 import type * as sampleData_demoProfiles from "../sampleData/demoProfiles.js";
 import type * as seed from "../seed.js";
 import type * as swipes from "../swipes.js";
+import type * as tarot from "../tarot.js";
+import type * as test_vector from "../test_vector.js";
 import type * as users from "../users.js";
 
 import type {
@@ -28,7 +34,11 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  clear: typeof clear;
+  debug: typeof debug;
   files: typeof files;
+  force: typeof force;
+  "lib/astrology": typeof lib_astrology;
   "lib/compatibility": typeof lib_compatibility;
   "lib/distance": typeof lib_distance;
   "lib/openai": typeof lib_openai;
@@ -39,6 +49,8 @@ declare const fullApi: ApiFromModules<{
   "sampleData/demoProfiles": typeof sampleData_demoProfiles;
   seed: typeof seed;
   swipes: typeof swipes;
+  tarot: typeof tarot;
+  test_vector: typeof test_vector;
   users: typeof users;
 }>;
 

@@ -81,7 +81,8 @@ export default function DailyPicksScreen() {
     };
 
     generateIfNeeded();
-  }, [dailyPicks, currentUser?._id, isGenerating, generateDailyPicks]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dailyPicks, currentUser?._id, isGenerating]);
 
   // Get pending picks (not yet liked/passed)
   const pendingPicks = dailyPicks?.picks.filter((p) => p.status === "pending") ?? [];

@@ -1,400 +1,290 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { Id } from "./_generated/dataModel";
-import { action, internalMutation } from "./_generated/server";
-import { areUsersCompatible } from "./lib/compatibility";
+import { action, internalMutation, mutation } from "./_generated/server";
 import { generateEmbedding } from "./lib/openai";
-import {
-  buildProfileText,
-  calculateAge,
-  getAllMatchesForUser,
-} from "./lib/utils";
-import { demoProfiles } from "./sampleData/demoProfiles";
 
-/**
- * =============================================================================
- * SEED DATA UTILITIES
- * =============================================================================
- *
- * CLI COMMANDS:
- *
- * 1. Seed demo profiles (creates 10 fake users with embeddings):
- *    npx convex run seed:seedDemoProfiles
- *
- * 2. Seed swipes for a user (makes demo users like a specific user):
- *    npx convex run seed:seedSwipesForUser '{"clerkId": "user_xxx"}'
- *
- *    With limited likes:
- *    npx convex run seed:seedSwipesForUser '{"clerkId": "user_xxx", "likeCount": 3}'
- *
- * 3. Clear all demo profiles (and their swipes/matches/messages):
- *    npx convex run seed:clearDemoProfiles
- *
- * 4. Clear all swipes (useful for resetting swipe state):
- *    npx convex run seed:clearSwipes
- *
- * 5. Clear daily picks (reset AI matches so they regenerate):
- *    npx convex run seed:clearDailyPicks
- *
- *    For a specific user:
- *    npx convex run seed:clearDailyPicks '{"clerkId": "user_xxx"}'
- *
- * =============================================================================
- */
+const CELEBS = [
+  "Ninh Dương Lan Ngọc", "Bích Phương", "Chi Pu", "Hồ Ngọc Hà", "Tóc Tiên", 
+  "Đông Nhi", "Min", "Hương Giang", "Phí Phương Anh", "Hoa hậu H’Hen Niê", 
+  "Salim", "Thúy Ngân", "Ngọc Trinh", "Linh Ka", "Miu Lê", 
+  "Lynk Lee", "Hòa Minzy", "Nguyễn Thúc Thùy Tiên", "Lyly", "Diệu Nhi", 
+  "AMEE", "Khả Ngân", "Tlinh", "Phương Ly", "Phương Mỹ Chi", 
+  "Cô em Trendy", "Mai Ngô", "Cháu Bùi", "Quỳnh Anh Shyn", "Helly Tống", 
+  "Amandine", "Dương Minh Ngọc", "Naomi Roestel", "Khánh Vy", "Jenny Huỳnh", 
+  "Vừng", "Nguyễn Lâm Thảo Tâm", "Meichan", "Hannah Olala", "Luna Đào", 
+  "An Phương", "Thảo Nhi Lê", "Changmakeup", "Trinh Phạm", "Chloe Nguyễn", 
+  "Giang Ơi", "Thạch Trang", "Sunhuyn", "Liêu Hà Trinh", "Lê Hà Trúc", 
+  "Cao Thiên Trang", "Nhị Đặng", "Phượng Đi Đâu", "No Food Phobia", "Phan Anh (Esheep)", 
+  "Ciin", "Đào Lê Phương Hoa", "Việt Phương Thoa", "Trà Đặng", "Hot girl Chao", 
+  "Gấm Kami", "Xoài Phạm", "Cindy", "Ngô Ngọc Hòa", "Lê Bống", 
+  "Linh Ngọc Đàm", "Linda Ngo", "Đặng Thu Hà", "Tín Nguyễn", "Hiền Hồ", 
+  "Bảo Anh", "Văn Mai Hương", "Suni Hạ Linh", "Han Sara", "Juky San", 
+  "Hoàng Yến Chibi", "Kaity Nguyễn", "Jun Vũ", "Midu", "Sam", 
+  "Puka", "Hari Won", "Khởi My", "Minh Hằng", "Thủy Tiên", 
+  "Elly Trần", "Tâm Tít", "Huyền Baby", "Hạnh Sino", "Emily", 
+  "Suboi", "Kimmese", "Orange", "Sofia", "Pháo", 
+  "Lona Kiều Loan", "Trần Thanh Tâm", "Lê Thụy", "Trang Hý", "Mỹ Tâm", 
+  "Sơn Tùng M-TP", "Đen Vâu", "MONO", "Binz", "Karik", "HIEUTHUHAI", "Isaac"
+];
 
-// Internal mutation to create a demo user
-export const createDemoUser = internalMutation({
-  args: {
-    clerkId: v.string(),
-    name: v.string(),
-    dateOfBirth: v.number(), // Unix timestamp
-    gender: v.string(),
-    bio: v.string(),
-    lookingFor: v.array(v.string()),
-    ageRange: v.object({
-      min: v.number(),
-      max: v.number(),
-    }),
-    interests: v.array(v.string()),
-    photos: v.array(v.string()),
-    embedding: v.array(v.float64()),
-    location: v.object({
-      latitude: v.number(),
-      longitude: v.number(),
-    }),
-    maxDistance: v.optional(v.number()), // undefined = unlimited (no distance filter)
+const ARCHETYPES = [
+  {
+    bio: "Mẫu người hiện đại, đam mê thời trang và luôn muốn dẫn đầu xu hướng. Thích những buổi cafe chill và chụp ảnh nghệ thuật. Gu của mình là những chàng trai lịch thiệp, có phong cách.",
+    interests: ["Thời trang", "Nhiếp ảnh", "Cafehopping", "High-end Brand", "Shopping"],
+    gender: "woman",
+    lookingFor: ["man"],
+    system: "western" as const
   },
-  handler: async (ctx, args): Promise<Id<"users">> => {
-    const now = Date.now();
-    const age = calculateAge(args.dateOfBirth);
-    // Only include maxDistance if it's defined
-    const { maxDistance, ...rest } = args;
-    return await ctx.db.insert("users", {
-      ...rest,
-      age, // Computed from dateOfBirth for vector index filtering
-      ...(maxDistance !== undefined && { maxDistance }),
-      createdAt: now,
-      updatedAt: now,
-    });
+  {
+    bio: "Nghệ sĩ tự do với tâm hồn bay bổng. Yêu âm nhạc Indie, thích vẽ tranh và những gì hoài cổ. Mong tìm được một 'soulmate' để cùng đi triển lãm mỗi cuối tuần.",
+    interests: ["Vẽ tranh", "Indie Music", "Lâm Đồng", "Đồ si", "Sách"],
+    gender: "woman",
+    lookingFor: ["man", "woman"],
+    system: "tuvi" as const
   },
-});
-
-/**
- * Seed all demo profiles with embeddings
- * CLI: npx convex run seed:seedDemoProfiles
- */
-export const seedDemoProfiles = action({
-  args: {},
-  handler: async (ctx): Promise<{ success: boolean; count: number }> => {
-    let count = 0;
-
-    for (const profile of demoProfiles) {
-      // Generate embedding for profile
-      const profileText = buildProfileText(profile.bio, profile.interests);
-
-      let embedding: number[];
-      try {
-        embedding = await generateEmbedding(profileText);
-      } catch (error) {
-        console.error(
-          `Failed to generate embedding for ${profile.name}`,
-          error,
-        );
-        continue;
-      }
-
-      // Create demo user with unique clerkId
-      const clerkId = `demo_${profile.name.toLowerCase()}_${Date.now()}`;
-
-      await ctx.runMutation(internal.seed.createDemoUser, {
-        ...profile,
-        clerkId,
-        embedding,
-      });
-
-      count++;
-      console.log(`Created demo profile: ${profile.name}`);
-    }
-
-    return { success: true, count };
+  {
+    bio: "Girl hành động, yêu gym/yoga và lối sống healthy. Luôn dồi dào năng lượng tích cực. Cùng mình đi trekking hay chạy bộ buổi sáng nhé!",
+    interests: ["Gym", "Yoga", "Healthy food", "Chạy bộ", "Trekking"],
+    gender: "woman",
+    lookingFor: ["man"],
+    system: "western" as const
   },
-});
-
-// Internal mutation to delete all demo users
-export const deleteDemoUsers = internalMutation({
-  args: {},
-  handler: async (ctx): Promise<{ deletedCount: number }> => {
-    // Find all users with clerkId starting with "demo_"
-    const allUsers = await ctx.db.query("users").collect();
-    const demoUsers = allUsers.filter((user) =>
-      user.clerkId.startsWith("demo_"),
-    );
-
-    let deletedCount = 0;
-    for (const user of demoUsers) {
-      // Delete associated swipes (where user is swiper or swiped)
-      const swipesAsSwiper = await ctx.db
-        .query("swipes")
-        .withIndex("by_swiper", (q) => q.eq("swiperId", user._id))
-        .collect();
-      const swipesAsSwiped = await ctx.db
-        .query("swipes")
-        .withIndex("by_swiped", (q) => q.eq("swipedId", user._id))
-        .collect();
-
-      for (const swipe of [...swipesAsSwiper, ...swipesAsSwiped]) {
-        await ctx.db.delete(swipe._id);
-      }
-
-      // Delete associated matches
-      const allMatches = await getAllMatchesForUser(ctx, user._id);
-
-      for (const match of allMatches) {
-        // Delete messages for this match
-        const messages = await ctx.db
-          .query("messages")
-          .withIndex("by_match", (q) => q.eq("matchId", match._id))
-          .collect();
-        for (const message of messages) {
-          await ctx.db.delete(message._id);
-        }
-        await ctx.db.delete(match._id);
-      }
-
-      // Delete the user
-      await ctx.db.delete(user._id);
-      deletedCount++;
-    }
-
-    return { deletedCount };
+  {
+    bio: "Foodie chính hiệu, thích khám phá mọi ngóc ngách ẩm thực Sài Gòn/Hà Nội. Nấu ăn cũng là một thế mạnh của mình. Đang tìm người cùng mình đi ăn cả thế giới.",
+    interests: ["Ẩm thực", "Nấu ăn", "Review món ăn", "Du lịch tâm linh", "Phim ảnh"],
+    gender: "woman",
+    lookingFor: ["man"],
+    system: "tuvi" as const
   },
-});
-
-/**
- * Clear all demo profiles and their associated data
- * CLI: npx convex run seed:clearDemoProfiles
- */
-export const clearDemoProfiles = action({
-  args: {},
-  handler: async (ctx): Promise<{ success: boolean; deletedCount: number }> => {
-    const result = await ctx.runMutation(internal.seed.deleteDemoUsers, {});
-    console.log(`Deleted ${result.deletedCount} demo profiles`);
-    return { success: true, deletedCount: result.deletedCount };
+  {
+    bio: "Gen Z sành điệu, đam mê công nghệ và gaming. Một chút bướng bỉnh nhưng lại rất tình cảm. Thích những người thông minh và hài hước.",
+    interests: ["Gaming", "Công nghệ", "AI", "Startup", "Tiktok"],
+    gender: "woman",
+    lookingFor: ["man"],
+    system: "western" as const
   },
-});
-
-// Internal mutation to delete all swipes
-export const deleteAllSwipes = internalMutation({
-  args: {},
-  handler: async (ctx): Promise<{ deletedCount: number }> => {
-    const allSwipes = await ctx.db.query("swipes").collect();
-
-    for (const swipe of allSwipes) {
-      await ctx.db.delete(swipe._id);
-    }
-
-    return { deletedCount: allSwipes.length };
+  {
+    bio: "Tín đồ 'xê dịch', đi đây đi đó để mở mang tầm mắt. Thích cuộc sống tự do, không gò bó. Gu mình là những người có cùng đam mê khám phá.",
+    interests: ["Du lịch bụi", "Outdoor", "Camping", "Văn hóa", "Ngoại ngữ"],
+    gender: "woman",
+    lookingFor: ["man", "woman"],
+    system: "western" as const
   },
-});
-
-/**
- * Clear all swipes (useful for resetting swipe state during testing)
- * CLI: npx convex run seed:clearSwipes
- */
-export const clearSwipes = action({
-  args: {},
-  handler: async (ctx): Promise<{ success: boolean; deletedCount: number }> => {
-    const result = await ctx.runMutation(internal.seed.deleteAllSwipes, {});
-    console.log(`Deleted ${result.deletedCount} swipes`);
-    return { success: true, deletedCount: result.deletedCount };
+  {
+    bio: "Mộc mạc nhưng sâu sắc. Thích tìm hiểu về cung hoàng đạo, tử vi và thiền định. Đang tìm kiếm sự bình yên trong tâm hồn giữa thế giới ồn ào.",
+    interests: ["Tâm linh", "Thiền", "Tử vi", "Healing", "Trà đạo"],
+    gender: "woman",
+    lookingFor: ["man"],
+    system: "tuvi" as const
   },
-});
-
-// Internal mutation to create a swipe from demo user to target user
-export const createDemoSwipe = internalMutation({
-  args: {
-    swiperId: v.id("users"),
-    swipedId: v.id("users"),
-    action: v.union(v.literal("like"), v.literal("reject")),
+  {
+    bio: "Nữ doanh nhân bận rộn nhưng luôn biết cách tận hưởng cuộc sống. Thích wine, jazz và những cuộc trò chuyện sâu sắc. Tìm một bờ vai vững chãi.",
+    interests: ["Kinh doanh", "Wine", "Jazz", "Đầu tư", "Networking"],
+    gender: "woman",
+    lookingFor: ["man"],
+    system: "western" as const
   },
-  handler: async (ctx, args): Promise<Id<"swipes">> => {
-    // Check if swipe already exists
-    const existingSwipe = await ctx.db
-      .query("swipes")
-      .withIndex("by_swiper_and_swiped", (q) =>
-        q.eq("swiperId", args.swiperId).eq("swipedId", args.swipedId),
-      )
-      .first();
-
-    if (existingSwipe) {
-      return existingSwipe._id;
-    }
-
-    return await ctx.db.insert("swipes", {
-      swiperId: args.swiperId,
-      swipedId: args.swipedId,
-      action: args.action,
-      createdAt: Date.now(),
-    });
+  {
+    bio: "Năng động, thích tham gia các hoạt động xã hội và cộng đồng. Một trái tim ấm áp luôn hướng tới những điều tốt đẹp.",
+    interests: ["Từ thiện", "Môi trường", "Social Work", "Âm nhạc cộng đồng", "Thú cưng"],
+    gender: "woman",
+    lookingFor: ["man"],
+    system: "western" as const
   },
-});
-
-// Internal mutation to get user by clerkId
-export const getUserByClerkId = internalMutation({
-  args: { clerkId: v.string() },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query("users")
-      .withIndex("by_clerkId", (q) => q.eq("clerkId", args.clerkId))
-      .first();
+  {
+    bio: "Cô gái của gia đình, truyền thống nhưng không kém phần hiện đại. Biết chăm sóc bản thân và những người xung quanh. Thích sự chân thành.",
+    interests: ["Làm vườn", "Cắm hoa", "Trang trí nhà cửa", "Phim gia đình", "Handmade"],
+    gender: "woman",
+    lookingFor: ["man"],
+    system: "tuvi" as const
   },
-});
+  {
+    bio: "Nam ca sĩ, rapper tài năng, thích những gì ngầu và phong cách. Luôn cháy hết mình với âm nhạc. Tìm kiếm một cô gái cá tính và hiểu mình.",
+    interests: ["Rapping", "Hiphop", "Sneakers", "Sản xuất nhạc", "Sân khấu"],
+    gender: "man",
+    lookingFor: ["woman"],
+    system: "western" as const
+  },
+  {
+    bio: "Diễn viên, người dẫn chương trình với tính cách vui vẻ, hoạt bát. Luôn làm mọi người cười. Thích những gì chân thật và giản dị nhất.",
+    interests: ["Sân khấu", "Hài hước", "Mc", "Nấu ăn", "Du lịch"],
+    gender: "man",
+    lookingFor: ["woman"],
+    system: "tuvi" as const
+  }
+];
 
-// Internal mutation to get all demo users
-export const getAllDemoUsers = internalMutation({
+export const seedCelebs = action({
   args: {},
   handler: async (ctx) => {
-    const allUsers = await ctx.db.query("users").collect();
-    return allUsers.filter((user) => user.clerkId.startsWith("demo_"));
-  },
-});
-
-/**
- * Seed swipes from demo profiles to a specific user
- * This simulates demo users liking the target user so they can test matching
- *
- * CLI: npx convex run seed:seedSwipesForUser '{"clerkId": "user_xxx"}'
- * With limit: npx convex run seed:seedSwipesForUser '{"clerkId": "user_xxx", "likeCount": 3}'
- */
-export const seedSwipesForUser = action({
-  args: {
-    clerkId: v.string(),
-    likeCount: v.optional(v.number()), // How many demo users should like this user (default: all)
-  },
-  handler: async (
-    ctx,
-    args,
-  ): Promise<{
-    success: boolean;
-    likesCreated: number;
-    targetUserName: string;
-    likedBy: string[];
-  }> => {
-    // Find the target user by their Clerk ID
-    const targetUser = await ctx.runMutation(internal.seed.getUserByClerkId, {
-      clerkId: args.clerkId,
-    });
-
-    if (!targetUser) {
-      throw new Error(`User with clerkId "${args.clerkId}" not found`);
-    }
-
-    // Get all demo users
-    const demoUsers = await ctx.runMutation(internal.seed.getAllDemoUsers, {});
-
-    if (demoUsers.length === 0) {
-      throw new Error(
-        "No demo users found. Run seedDemoProfiles first to create demo users.",
-      );
-    }
-
-    // Filter demo users to only those who could potentially match with target user
-    const compatibleDemoUsers = demoUsers.filter((demoUser) =>
-      areUsersCompatible(demoUser, targetUser),
-    );
-
-    // Determine how many likes to create
-    const likeCount = args.likeCount ?? compatibleDemoUsers.length;
-    const usersToSwipe = compatibleDemoUsers.slice(0, likeCount);
-
-    let likesCreated = 0;
-    const likedBy: string[] = [];
-
-    for (const demoUser of usersToSwipe) {
-      await ctx.runMutation(internal.seed.createDemoSwipe, {
-        swiperId: demoUser._id,
-        swipedId: targetUser._id,
-        action: "like",
-      });
-
-      likesCreated++;
-      likedBy.push(demoUser.name);
-      console.log(`${demoUser.name} liked ${targetUser.name}`);
-    }
-
-    return {
-      success: true,
-      likesCreated,
-      targetUserName: targetUser.name,
-      likedBy,
-    };
-  },
-});
-
-// Internal mutation to delete daily picks
-export const deleteAllDailyPicks = internalMutation({
-  args: {
-    userId: v.optional(v.id("users")),
-  },
-  handler: async (ctx, args): Promise<{ deletedCount: number }> => {
-    let dailyPicks;
-
-    if (args.userId) {
-      // Delete picks for specific user
-      const userPicks = await ctx.db
-        .query("dailyPicks")
-        .withIndex("by_user", (q) => q.eq("userId", args.userId!))
-        .first();
-      dailyPicks = userPicks ? [userPicks] : [];
-    } else {
-      // Delete all daily picks
-      dailyPicks = await ctx.db.query("dailyPicks").collect();
-    }
-
-    for (const pick of dailyPicks) {
-      await ctx.db.delete(pick._id);
-    }
-
-    return { deletedCount: dailyPicks.length };
-  },
-});
-
-/**
- * Clear daily picks (reset AI matches so they regenerate)
- * CLI: npx convex run seed:clearDailyPicks
- * For specific user: npx convex run seed:clearDailyPicks '{"clerkId": "user_xxx"}'
- */
-export const clearDailyPicks = action({
-  args: {
-    clerkId: v.optional(v.string()),
-  },
-  handler: async (
-    ctx,
-    args,
-  ): Promise<{ success: boolean; deletedCount: number; message: string }> => {
-    let userId: Id<"users"> | undefined;
-
-    if (args.clerkId) {
-      const user = await ctx.runMutation(internal.seed.getUserByClerkId, {
-        clerkId: args.clerkId,
-      });
-
-      if (!user) {
-        throw new Error(`User with clerkId "${args.clerkId}" not found`);
+    console.log("Starting premium seed process for ~100 celebs...");
+    
+    // 1. Generate embeddings for archetypes (12 calls)
+    const archetypeEmbeddings = [];
+    for (const arch of ARCHETYPES) {
+      const text = `${arch.bio} Interests: ${arch.interests.join(", ")}`;
+      console.log(`Generating embedding for archetype...`);
+      const embedding = await generateEmbedding(text);
+      if (embedding.length !== 3072) {
+          throw new Error(`CRITICAL: Generated embedding has ${embedding.length} dimensions, expected 3072. Check schema override!`);
       }
-
-      userId = user._id;
+      archetypeEmbeddings.push(embedding);
+      await new Promise(r => setTimeout(r, 2000));
     }
 
-    const result = await ctx.runMutation(internal.seed.deleteAllDailyPicks, {
-      userId,
-    });
+    console.log("Embeddings generated. Dimensions confirmed as 3072. Batching inserts...");
 
-    const message = args.clerkId
-      ? `Deleted ${result.deletedCount} daily picks for user`
-      : `Deleted ${result.deletedCount} daily picks for all users`;
+    const usersToInsert = [];
+    for (let i = 0; i < CELEBS.length; i++) {
+        const archIdx = i % ARCHETYPES.length;
+        const arch = ARCHETYPES[archIdx];
+        const embedding = archetypeEmbeddings[archIdx];
+        
+        const age = Math.floor(Math.random() * 18) + 19; // 19 - 37
+        const birthYear = new Date().getFullYear() - age;
+        const dateOfBirth = new Date(birthYear, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1).getTime();
 
-    console.log(message);
-    return { success: true, deletedCount: result.deletedCount, message };
+        let bio = arch.bio;
+        // Personalize bios for specific famous ones
+        if (CELEBS[i] === "Ninh Dương Lan Ngọc") bio = "Ngọc nữ màn ảnh Việt với nụ cười tỏa nắng. Yêu thích yoga, nấu ăn và luôn sống hết mình với đam mê diễn xuất. Mong tìm được người đàn ông ấm áp.";
+        if (CELEBS[i] === "Bích Phương") bio = "Lầy lội, hài hước nhưng cực kỳ sâu sắc trong âm nhạc. Thích ngủ nướng, ăn quà vặt và tìm kiếm sự đồng điệu. Bạn có muốn cùng mình đi ăn vặt không?";
+        if (CELEBS[i] === "Chi Pu") bio = "Năng động, thích thử thách bản thân với vũ đạo và thời trang. Luôn không ngừng nỗ lực để tỏa sáng. Mình đang tìm một người bạn đồng hành cùng gu.";
+        if (CELEBS[i] === "H'Hen Niê") bio = "Yêu đời, yêu thiên nhiên và luôn tràn đầy năng lượng tích cực từ núi rừng Tây Nguyên. Mong muốn lan tỏa yêu thương đến cộng đồng.";
+        if (CELEBS[i] === "Sơn Tùng M-TP") bio = "Cháy hết mình với âm nhạc và sáng tạo. Thích sự khác biệt và luôn hướng về phía trước. Tìm kiếm một tâm hồn đồng điệu.";
+        if (CELEBS[i] === "Đen Vâu") bio = "Rapper của những tâm hồn tự do. Thích cuộc sống giản dị, về quê nuôi cá và trồng thêm rau. Bạn có muốn về quê cùng mình không?";
+
+        usersToInsert.push({
+            clerkId: `seed_clerk_${i}_${Date.now()}`,
+            name: CELEBS[i],
+            dateOfBirth,
+            age,
+            gender: arch.gender,
+            bio: bio,
+            lookingFor: arch.lookingFor,
+            ageRange: { min: 18, max: 50 },
+            interests: arch.interests,
+            photos: [`https://i.pravatar.cc/600?img=${(i % 70) + 1}`],
+            preferredSystem: arch.system,
+            embedding,
+            birthTime: "12:00am",
+            astrologyData: {
+              sun: getSunSign(new Date(dateOfBirth).getMonth() + 1, new Date(dateOfBirth).getDate()),
+              moon: "Unknown",
+              rising: "Unknown",
+              canChi: "Unknown",
+              banMenh: "Unknown",
+            },
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+        });
+    }
+
+    const chunkSize = 20;
+    for (let i = 0; i < usersToInsert.length; i += chunkSize) {
+        const chunk = usersToInsert.slice(i, i + chunkSize);
+        await ctx.runMutation(internal.seed.batchInsertUsers, { users: chunk });
+        console.log(`Inserted ${i + chunk.length}/${usersToInsert.length} celebs...`);
+    }
+
+    return `Successfully seeded ${usersToInsert.length} Vietnamese celebrities with 3072-dim vectors!`;
   },
+});
+
+export const batchInsertUsers = internalMutation({
+    args: {
+        users: v.array(v.any())
+    },
+    handler: async (ctx, args) => {
+        for (const user of args.users) {
+            await ctx.db.insert("users", user);
+        }
+    }
+});
+
+export const fixMissingData = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db.query("users").collect();
+    let count = 0;
+    for (const user of users) {
+      const updates: any = {};
+      
+      if (!user.birthTime) {
+        updates.birthTime = "12:00am";
+      }
+      
+      if (!user.astrologyData) {
+        // Simple Sun sign based on dateOfBirth
+        const date = new Date(user.dateOfBirth || 0);
+        const day = date.getDate();
+        const month = date.getMonth() + 1;
+        
+        const sign = getSunSign(month, day);
+        updates.astrologyData = {
+          sun: sign,
+          moon: "Unknown",
+          rising: "Unknown",
+          canChi: "Unknown",
+          banMenh: "Unknown",
+        };
+      }
+      
+      if (Object.keys(updates).length > 0) {
+        await ctx.db.patch(user._id, updates);
+        count++;
+      }
+    }
+    return `Fixed data for ${count} users.`;
+  }
+});
+
+function getSunSign(month: number, day: number): string {
+  if ((month === 1 && day >= 20) || (month === 2 && day <= 18)) return "Bảo Bình (Aquarius)";
+  if ((month === 2 && day >= 19) || (month === 3 && day <= 20)) return "Song Ngư (Pisces)";
+  if ((month === 3 && day >= 21) || (month === 4 && day <= 19)) return "Bạch Dương (Aries)";
+  if ((month === 4 && day >= 20) || (month === 5 && day <= 20)) return "Kim Ngưu (Taurus)";
+  if ((month === 5 && day >= 21) || (month === 6 && day <= 20)) return "Song Tử (Gemini)";
+  if ((month === 6 && day >= 21) || (month === 7 && day <= 22)) return "Cự Giải (Cancer)";
+  if ((month === 7 && day >= 23) || (month === 8 && day <= 22)) return "Sư Tử (Leo)";
+  if ((month === 8 && day >= 23) || (month === 9 && day <= 22)) return "Xử Nữ (Virgo)";
+  if ((month === 9 && day >= 23) || (month === 10 && day <= 22)) return "Thiên Bình (Libra)";
+  if ((month === 10 && day >= 23) || (month === 11 && day <= 21)) return "Bọ Cạp (Scorpio)";
+  if ((month === 11 && day >= 22) || (month === 12 && day <= 21)) return "Nhân Mã (Sagittarius)";
+  return "Ma Kết (Capricorn)";
+}
+
+
+export const migrateGenders = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db.query("users").collect();
+    let count = 0;
+    for (const user of users) {
+      let updated = false;
+      const updates: any = {};
+      
+      if (user.gender === "male") {
+        updates.gender = "man";
+        updated = true;
+      } else if (user.gender === "female") {
+        updates.gender = "woman";
+        updated = true;
+      }
+      
+      if (user.lookingFor.includes("male") || user.lookingFor.includes("female")) {
+        updates.lookingFor = user.lookingFor.map(g => {
+          if (g === "male") return "man";
+          if (g === "female") return "woman";
+          return g;
+        });
+        updated = true;
+      }
+      
+      if (updated) {
+        await ctx.db.patch(user._id, updates);
+        count++;
+      }
+    }
+    return `Migrated ${count} users to man/woman format.`;
+  }
 });

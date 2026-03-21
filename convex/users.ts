@@ -12,6 +12,7 @@ import {
 import { generateEmbedding } from "./lib/openai";
 import { withResolvedPhotos } from "./lib/photos";
 import { buildProfileText, calculateAge } from "./lib/utils";
+import { calculateAstrologyData } from "./lib/astrology";
 
 // Get user by Clerk ID (with resolved photo URLs)
 export const getByClerkId = query({
@@ -77,6 +78,17 @@ export const createProfile = internalMutation({
     }),
     interests: v.array(v.string()),
     photos: v.array(v.string()),
+    birthTime: v.optional(v.string()),
+    preferredSystem: v.optional(v.union(v.literal("western"), v.literal("tuvi"))),
+    astrologyData: v.optional(
+      v.object({
+        sun: v.string(),
+        moon: v.string(),
+        rising: v.string(),
+        canChi: v.string(),
+        banMenh: v.string(),
+      })
+    ),
     embedding: v.array(v.float64()),
     location: v.optional(
       v.object({
@@ -113,6 +125,8 @@ export const createProfileWithEmbedding = action({
     }),
     interests: v.array(v.string()),
     photos: v.array(v.string()),
+    birthTime: v.optional(v.string()),
+    preferredSystem: v.optional(v.union(v.literal("western"), v.literal("tuvi"))),
     location: v.optional(
       v.object({
         latitude: v.number(),
@@ -125,14 +139,23 @@ export const createProfileWithEmbedding = action({
     // Combine profile data for embedding
     const profileText = buildProfileText(args.bio, args.interests);
 
-    // Generate embedding using OpenAI
-    const embedding: number[] = await generateEmbedding(profileText);
+    // AI fetches the astrology and Tu Vi data
+    const astrologyData = await calculateAstrologyData(args.dateOfBirth, args.birthTime);
 
-    // Store profile with embedding
+    // We inject the astrology data into the text so AI embeddings can match it
+    const enhancedProfileText = astrologyData
+      ? `${profileText}. Astrological traits: Western Sun in ${astrologyData.sun}, Moon in ${astrologyData.moon}, Rising in ${astrologyData.rising}. Eastern Bát Tự: Năm ${astrologyData.canChi}, Bản Mệnh ${astrologyData.banMenh}. Prefer matching based on: ${args.preferredSystem ?? "western"}.`
+      : profileText;
+
+    // Generate embedding using Gemini
+    const embedding: number[] = await generateEmbedding(enhancedProfileText);
+
+    // Store profile with embedding and astrology
     const userId: Id<"users"> = await ctx.runMutation(
       internal.users.createProfile,
       {
         ...args,
+        astrologyData,
         embedding,
       }
     );

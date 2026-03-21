@@ -1,14 +1,14 @@
 import { useMaterial3Theme } from "@pchmn/expo-material3-theme";
 import { useColorScheme } from "react-native";
 
-// Spark app primary color - a warm, romantic pink/coral
-export const SEED_COLOR = "#FF6B6B";
+// SoulSync app primary color - Mystic Yellow
+export const SEED_COLOR = "#F5CB5C";
 
-// Custom color palette for the dating app
+// Custom color palette for the spiritual dating app
 export const AppColors = {
-  primary: "#FF6B6B",
-  secondary: "#4ECDC4",
-  accent: "#FFE66D",
+  primary: "#F5CB5C",
+  secondary: "#2D3142", // Mystic dark
+  accent: "#FFD166", // Brighter yellow for highlights
   like: "#4CD964",
   reject: "#FF3B30",
   match: "#FF2D55",

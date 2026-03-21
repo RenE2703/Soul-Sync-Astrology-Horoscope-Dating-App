@@ -35,8 +35,8 @@ export const glassFallbackStyles = {
  */
 interface AdaptiveGlassViewProps extends ViewProps {
   children: React.ReactNode;
-  /** Glass effect style - defaults to "regular" */
-  glassEffectStyle?: "regular" | "prominent";
+  /** Glass effect style */
+  glassEffectStyle?: any;
   /** Tint color for the glass effect */
   tintColor?: string;
   /** Background color to use when glass/blur is not available */

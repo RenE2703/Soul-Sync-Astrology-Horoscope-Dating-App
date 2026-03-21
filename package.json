@@ -1,5 +1,5 @@
 {
-  "name": "ai-dating-app",
+  "name": "soulsync",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
@@ -27,6 +27,7 @@
     "expo-blur": "^55.0.1",
     "expo-constants": "~55.0.1",
     "expo-dev-client": "~55.0.1",
+    "expo-file-system": "^55.0.11",
     "expo-font": "~55.0.1",
     "expo-glass-effect": "^55.0.1",
     "expo-haptics": "~55.0.1",

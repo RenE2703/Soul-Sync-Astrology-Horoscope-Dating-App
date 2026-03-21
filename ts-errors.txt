@@ -1,0 +1,21 @@
+app/(app)/(tabs)/chat.tsx(103,53): error TS7006: Parameter 'm' implicitly has an 'any' type.
+app/(app)/(tabs)/chat.tsx(146,54): error TS7006: Parameter 'm' implicitly has an 'any' type.
+app/(app)/(tabs)/index.tsx(39,42): error TS7006: Parameter 'profile' implicitly has an 'any' type.
+app/(app)/(tabs)/profile.tsx(112,28): error TS7006: Parameter '_' implicitly has an 'any' type.
+app/(app)/(tabs)/profile.tsx(112,31): error TS7006: Parameter 'index' implicitly has an 'any' type.
+app/(app)/(tabs)/profile.tsx(208,28): error TS7006: Parameter 'photo' implicitly has an 'any' type.
+app/(app)/(tabs)/profile.tsx(208,35): error TS7006: Parameter 'index' implicitly has an 'any' type.
+app/(app)/(tabs)/profile.tsx(244,41): error TS7006: Parameter 'interest' implicitly has an 'any' type.
+app/(app)/(tabs)/profile.tsx(273,48): error TS7006: Parameter 'g' implicitly has an 'any' type.
+app/(app)/edit-profile.tsx(101,37): error TS7006: Parameter 'photoUrl' implicitly has an 'any' type.
+app/(app)/profile/[id].tsx(136,30): error TS7006: Parameter '_' implicitly has an 'any' type.
+app/(app)/profile/[id].tsx(136,33): error TS7006: Parameter 'index' implicitly has an 'any' type.
+app/(app)/profile/[id].tsx(171,42): error TS7006: Parameter 'interest' implicitly has an 'any' type.
+app/(app)/profile/[id].tsx(171,52): error TS7006: Parameter 'index' implicitly has an 'any' type.
+components/onboarding/QuestionHeader.tsx(41,28): error TS2322: Type 'string' is not assignable to type '"search" | "repeat" | "link" | "at" | "push" | "map" | "filter" | "body" | "code" | "menu" | "time" | "ellipse" | "image" | "stop" | "text" | "infinite" | "scale" | "alert" | "checkbox" | ... 1337 more ... | "woman-sharp"'.
+components/ui/icon-symbol.tsx(8,27): error TS2344: Type 'SFSymbols7_0 | { ios?: SFSymbols7_0 | undefined; android?: "function" | "light" | "style" | "accessible" | "colors" | "ios" | "search" | "repeat" | ... 4047 more ... | undefined; web?: "function" | ... 4054 more ... | undefined; }' does not satisfy the constraint 'string | number | symbol'.
+  Type '{ ios?: SFSymbols7_0 | undefined; android?: "function" | "light" | "style" | "accessible" | "colors" | "ios" | "search" | "repeat" | "anchor" | "link" | "join" | "shift" | ... 4043 more ... | undefined; web?: "function" | ... 4054 more ... | undefined; }' is not assignable to type 'string | number | symbol'.
+components/ui/icon-symbol.tsx(40,65): error TS2538: Type '{ ios?: SFSymbols7_0 | undefined; android?: "function" | "light" | "style" | "accessible" | "colors" | "ios" | "search" | "repeat" | "anchor" | "link" | "join" | "shift" | ... 4043 more ... | undefined; web?: "function" | ... 4054 more ... | undefined; }' cannot be used as an index type.
+convex/tarot.ts(60,14): error TS7022: 'drawDailyCard' implicitly has type 'any' because it does not have a type annotation and is referenced directly or indirectly in its own initializer.
+convex/tarot.ts(62,3): error TS7023: 'handler' implicitly has return type 'any' because it does not have a return type annotation and is referenced directly or indirectly in one of its return expressions.
+convex/tarot.ts(70,11): error TS7022: 'existingReading' implicitly has type 'any' because it does not have a type annotation and is referenced directly or indirectly in its own initializer.

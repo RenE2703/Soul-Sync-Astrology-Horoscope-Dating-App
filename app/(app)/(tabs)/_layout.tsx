@@ -1,7 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
-import { NativeTabs } from "expo-router/unstable-native-tabs";
-import { DynamicColorIOS } from "react-native";
+import { Platform } from "react-native";
 
 import { supportsGlassEffect } from "@/lib/glass";
 import { AppColors, useAppTheme } from "@/lib/theme";
@@ -11,6 +10,10 @@ export default function TabLayout() {
 
   // Use NativeTabs on iOS 26+, fallback to regular Tabs on other platforms
   if (supportsGlassEffect) {
+    // Lazy require to avoid loading iOS-only modules on Android
+    const { NativeTabs } = require("expo-router/unstable-native-tabs");
+    const { DynamicColorIOS } = require("react-native");
+
     return (
       <NativeTabs
         minimizeBehavior="onScrollDown"
@@ -53,6 +56,12 @@ export default function TabLayout() {
             sf={{ default: "person", selected: "person.fill" }}
             md="person"
           />
+        </NativeTabs.Trigger>
+
+        {/* Daily Tarot */}
+        <NativeTabs.Trigger name="tarot">
+          <NativeTabs.Trigger.Label>Tarot</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Icon sf={{ default: "moon", selected: "moon.fill" }} md="star" />
         </NativeTabs.Trigger>
       </NativeTabs>
     );
@@ -127,6 +136,19 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? "person" : "person-outline"}
+              size={24}
+              color={color}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="tarot"
+        options={{
+          title: "Tarot",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "moon" : "moon-outline"}
               size={24}
               color={color}
             />

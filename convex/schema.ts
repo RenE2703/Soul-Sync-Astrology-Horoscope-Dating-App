@@ -17,7 +17,20 @@ export default defineSchema({
     }),
     interests: v.array(v.string()),
     photos: v.array(v.string()),
-    embedding: v.optional(v.array(v.float64())), // 1536-dim vector from OpenAI
+    birthTime: v.optional(v.string()), // e.g. "14:30"
+    preferredSystem: v.optional(
+      v.union(v.literal("western"), v.literal("tuvi"))
+    ),
+    astrologyData: v.optional(
+      v.object({
+        sun: v.string(),
+        moon: v.string(),
+        rising: v.string(),
+        canChi: v.string(),
+        banMenh: v.string(),
+      })
+    ),
+    embedding: v.optional(v.array(v.float64())), // 768-dim vector from Gemini
     location: v.optional(
       v.object({
         latitude: v.number(),
@@ -28,10 +41,10 @@ export default defineSchema({
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("by_clerkId", ["clerkId"])
-    .vectorIndex("by_embedding", {
+    .index("by_clerkId", ["clerkId"]) // Forces re-sync of 3072-dim index
+    .vectorIndex("by_embedding_v3_final", {
       vectorField: "embedding",
-      dimensions: 1536,
+      dimensions: 3072,
       filterFields: ["gender", "age"],
     }),
 
@@ -86,4 +99,12 @@ export default defineSchema({
     generatedAt: v.number(),
     expiresAt: v.number(),
   }).index("by_user", ["userId"]),
+
+  // Daily Tarot Readings table
+  tarotReadings: defineTable({
+    userId: v.id("users"),
+    date: v.string(), // "YYYY-MM-DD"
+    cardName: v.string(),
+    reading: v.string(),
+  }).index("by_user_and_date", ["userId", "date"]),
 });

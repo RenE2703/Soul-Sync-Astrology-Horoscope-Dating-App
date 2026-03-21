@@ -1,0 +1,10 @@
+.agents
+skills
+node_modules
+.expo
+.git
+.vscode
+*.log
+ts-errors.txt
+features.txt
+tmp_layout.txt

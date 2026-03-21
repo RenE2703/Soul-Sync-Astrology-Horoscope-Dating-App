@@ -143,19 +143,22 @@ export const generateMatchExplanation = action({
 
     if (!user1 || !user2) throw new Error("Users not found");
 
-    const prompt: string = `You are a friendly matchmaker. Given these two dating profiles, explain in 2-3 warm, encouraging sentences why they would be compatible. Be specific about their shared interests.
+    const prompt: string = `You are a mystical matchmaker and spiritual guide, expert in Western Astrology and Vietnamese Tu Vi. Given these two dating profiles and their cosmic traits, explain in 2-3 warm, encouraging sentences why they would be compatible romantically. Be specific about their shared interests or how their energies/elements/signs align perfectly.
 
 Profile 1:
 Name: ${user1.name}
 Bio: ${user1.bio}
 Interests: ${user1.interests.join(", ")}
+Astrology: ${JSON.stringify(user1.astrologyData || {})}
+Preferred Matching System: ${user1.preferredSystem || "western"}
 
 Profile 2:
 Name: ${user2.name}
 Bio: ${user2.bio}
 Interests: ${user2.interests.join(", ")}
+Astrology: ${JSON.stringify(user2.astrologyData || {})}
 
-Write a brief, personalized match explanation:`;
+Write a brief, personalized cosmic match explanation:`;
 
     const explanation: string = await generateChatCompletion(prompt, {
       maxTokens: 150,
@@ -316,7 +319,7 @@ export const generateDailyPicks = action({
     // Vector search for similar profiles
     const results: VectorSearchResult[] = await ctx.vectorSearch(
       "users",
-      "by_embedding",
+      "by_embedding_v3_final",
       {
         vector: user.embedding,
         limit: 30,
@@ -385,20 +388,22 @@ export const generateDailyPicks = action({
         pick.user.interests.includes(interest),
       );
 
-      // Generate AI explanation
-      const prompt = `You are a friendly matchmaker for a dating app. Given these two profiles, write ONE short, warm sentence (max 20 words) explaining why they might be compatible. Focus on their shared interests or complementary traits. Be specific and encouraging.
+      const prompt = `You are a mystical matchmaker expert in Western Astrology and Vietnamese Tu Vi. Given these two profiles, write ONE short, warm sentence (max 20 words) explaining why they might be compatible romantically. Focus on their astrological/Tu Vi compatibility and element synergy, or shared interests.
 
 User 1:
 Name: ${user.name}
 Bio: ${user.bio}
 Interests: ${user.interests.join(", ")}
+Astrology: ${JSON.stringify(user.astrologyData || {})}
+Preferred System: ${user.preferredSystem || "western"}
 
 User 2:
 Name: ${pick.user.name}
 Bio: ${pick.user.bio}
 Interests: ${pick.user.interests.join(", ")}
+Astrology: ${JSON.stringify(pick.user.astrologyData || {})}
 
-Write a brief match insight:`;
+Write a brief cosmic match insight:`;
 
       let aiExplanation = "You two seem like a great match!";
 

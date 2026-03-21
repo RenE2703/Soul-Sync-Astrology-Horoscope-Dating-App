@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Heartly",
-    "slug": "ai-dating-app",
+    "name": "SoulSync",
+    "slug": "soulsync",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "aidatingapp",
+    "scheme": "soulsync",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
@@ -26,7 +26,6 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "permissions": [
-        "android.permission.RECORD_AUDIO",
         "android.permission.RECORD_AUDIO",
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION"
@@ -76,7 +75,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "2ef4ee7e-794b-4764-b88f-b2c538b3fba5"
+        "projectId": "fe478414-818e-4c4d-ba5b-f69c3cca2d2d"
       }
     }
   }

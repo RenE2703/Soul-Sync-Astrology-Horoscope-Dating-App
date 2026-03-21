@@ -25,11 +25,13 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { CodeVerification } from "@/components/auth";
+import { CodeVerification, PasswordReset } from "@/components/auth";
 import { hapticButtonPress } from "@/lib/haptics";
 import { shadowPrimary } from "@/lib/styles/shadows";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+import { useEffect } from "react";
 
 // Floating heart decoration component
 function FloatingHeart({
@@ -48,14 +50,16 @@ function FloatingHeart({
   const translateY = useSharedValue(0);
 
   // Start floating animation
-  translateY.value = withRepeat(
-    withSequence(
-      withTiming(-10, { duration: 2000 }),
-      withTiming(10, { duration: 2000 })
-    ),
-    -1,
-    true
-  );
+  useEffect(() => {
+    translateY.value = withRepeat(
+      withSequence(
+        withTiming(-10, { duration: 2000 }),
+        withTiming(10, { duration: 2000 })
+      ),
+      -1,
+      true
+    );
+  }, [translateY]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
@@ -89,6 +93,7 @@ export default function SignInScreen() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [needsSecondFactor, setNeedsSecondFactor] = useState(false);
+  const [needsPasswordReset, setNeedsPasswordReset] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
 
@@ -137,6 +142,53 @@ export default function SignInScreen() {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!isLoaded) return;
+    if (!email) {
+      setError("Please enter your email to reset password");
+      return;
+    }
+
+    hapticButtonPress();
+    setLoading(true);
+    setError("");
+
+    try {
+      await signIn.create({
+        strategy: "reset_password_email_code",
+        identifier: email,
+      });
+      setNeedsPasswordReset(true);
+    } catch (err: any) {
+      setError(err.errors?.[0]?.message || "Failed to start password reset");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (code: string, newPassword: string) => {
+    if (!isLoaded) return;
+
+    hapticButtonPress();
+    // setLoading is handled by PasswordReset component
+
+    try {
+      const result = await signIn.attemptFirstFactor({
+        strategy: "reset_password_email_code",
+        code,
+        password: newPassword,
+      });
+
+      if (result.status === "complete") {
+        await setActive({ session: result.createdSessionId });
+      } else {
+        throw new Error(`Reset incomplete: ${result.status}`);
+      }
+    } catch (err: any) {
+      throw err;
+    }
+  };
+
   if (needsSecondFactor) {
     return (
       <CodeVerification
@@ -146,6 +198,16 @@ export default function SignInScreen() {
         onVerify={handleVerifySecondFactor}
         onBack={() => setNeedsSecondFactor(false)}
         backButtonText="Back to sign in"
+      />
+    );
+  }
+
+  if (needsPasswordReset) {
+    return (
+      <PasswordReset
+        email={email}
+        onVerify={handleResetPassword}
+        onBack={() => setNeedsPasswordReset(false)}
       />
     );
   }
@@ -195,8 +257,8 @@ export default function SignInScreen() {
                 <SymbolView name="heart.fill" size={42} tintColor="#FFFFFF" />
               </LinearGradient>
             </View>
-            <Text style={styles.logoText}>Heartly</Text>
-            <Text style={styles.logoTagline}>Find your perfect match</Text>
+            <Text style={styles.logoText}>SoulSync</Text>
+            <Text style={styles.logoTagline}>Written in the stars ✨</Text>
           </Animated.View>
 
           {/* Input Section */}
@@ -270,7 +332,11 @@ export default function SignInScreen() {
             </View>
 
             {/* Forgot Password */}
-            <TouchableOpacity style={styles.forgotPassword}>
+            <TouchableOpacity 
+              style={styles.forgotPassword}
+              onPress={handleForgotPassword}
+              disabled={loading}
+            >
               <Text style={styles.forgotPasswordText}>Forgot password?</Text>
             </TouchableOpacity>
 

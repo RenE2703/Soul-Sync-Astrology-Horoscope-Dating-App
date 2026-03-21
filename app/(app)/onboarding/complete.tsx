@@ -57,6 +57,8 @@ export default function CompleteScreen() {
         const dateOfBirth = parseInt(params.dateOfBirth as string, 10);
         const gender = params.gender as string;
         const bio = params.bio as string;
+        const birthTime = params.birthTime as string;
+        const preferredSystem = params.preferredSystem as "western" | "tuvi";
         const interests = JSON.parse(params.interests as string) as string[];
         const lookingFor = JSON.parse(params.lookingFor as string) as string[];
         const ageRangeMin = parseInt(params.ageRangeMin as string, 10);
@@ -74,6 +76,8 @@ export default function CompleteScreen() {
           clerkId: user.id,
           name: `${firstName} ${lastName}`,
           dateOfBirth,
+          birthTime,
+          preferredSystem,
           gender: gender.toLowerCase(),
           bio,
           lookingFor,
@@ -117,7 +121,7 @@ export default function CompleteScreen() {
               entering={FadeInDown.delay(300).duration(500)}
               style={[styles.successSubtitle, { color: colors.onSurfaceVariant }]}
             >
-              Get ready to find your perfect match
+              The cosmos is aligning your perfect match
             </Animated.Text>
           </Animated.View>
         ) : status === "error" ? (

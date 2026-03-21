@@ -17,6 +17,8 @@ export default function OnboardingLayout() {
     >
       <Stack.Screen name="name" options={{ gestureEnabled: false }} />
       <Stack.Screen name="birthday" />
+      <Stack.Screen name="birth-time" />
+      <Stack.Screen name="system" />
       <Stack.Screen name="gender" />
       <Stack.Screen name="looking-for" />
       <Stack.Screen name="age-range" />

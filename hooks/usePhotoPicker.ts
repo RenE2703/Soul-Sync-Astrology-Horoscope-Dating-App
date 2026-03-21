@@ -1,6 +1,8 @@
 import { useMutation } from "convex/react";
+import * as FileSystem from "expo-file-system/legacy";
 import * as ImagePicker from "expo-image-picker";
 import { useCallback } from "react";
+import { Platform } from "react-native";
 
 import { api } from "@/convex/_generated/api";
 import { hapticButtonPress, hapticSelection } from "@/lib/haptics";
@@ -12,18 +14,11 @@ interface UsePhotoPickerOptions {
 }
 
 interface UsePhotoPickerReturn {
-  /** Pick an image from the library. Returns the local URI or null if cancelled/failed. */
   pickImage: () => Promise<string | null>;
-  /** Upload a local image URI to Convex storage. Returns the storage ID. */
   uploadPhoto: (uri: string) => Promise<string>;
-  /** Upload multiple photos in parallel. Returns array of storage IDs. */
   uploadPhotos: (uris: string[]) => Promise<string[]>;
 }
 
-/**
- * Hook for picking and uploading photos to Convex storage.
- * Encapsulates permission handling, image picker, and upload logic.
- */
 export function usePhotoPicker(options: UsePhotoPickerOptions = {}): UsePhotoPickerReturn {
   const { maxPhotos = 6, aspect = [3, 4], quality = 0.8 } = options;
 
@@ -54,18 +49,45 @@ export function usePhotoPicker(options: UsePhotoPickerOptions = {}): UsePhotoPic
   }, [aspect, quality]);
 
   const uploadPhoto = useCallback(async (uri: string): Promise<string> => {
-    const uploadUrl = await generateUploadUrl();
-    const response = await fetch(uri);
-    const blob = await response.blob();
+    let uploadUrl: string;
 
-    const uploadResponse = await fetch(uploadUrl, {
-      method: "POST",
-      headers: { "Content-Type": blob.type },
-      body: blob,
-    });
+    try {
+      console.log("[uploadPhoto] Generating upload URL via Convex...");
+      uploadUrl = await generateUploadUrl();
+      console.log("[uploadPhoto] Upload URL generated successfully:", uploadUrl);
+    } catch (e) {
+      console.error("[uploadPhoto] Convex generateUploadUrl failed:", e);
+      throw new Error("generateUploadUrl failed: " + e);
+    }
 
-    const { storageId } = await uploadResponse.json();
-    return storageId;
+    const extension = uri.split(".").pop()?.toLowerCase() || "jpeg";
+    const mimeTypes: Record<string, string> = { jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", gif: "image/gif", webp: "image/webp" };
+    const contentType = mimeTypes[extension] || "image/jpeg";
+
+    try {
+      console.log(`[uploadPhoto] Starting Native FileSystem upload. URI: ${uri}, ContentType: ${contentType}`);
+      
+      // Use standard upload API for Native
+      const uploadResult = await FileSystem.uploadAsync(uploadUrl, uri, {
+        httpMethod: "POST",
+        // @ts-ignore
+        uploadType: FileSystem.FileSystemUploadType ? FileSystem.FileSystemUploadType.BINARY_CONTENT : 0,
+        headers: { "Content-Type": contentType },
+      });
+
+      console.log("[uploadPhoto] FileSystem upload completed with status:", uploadResult.status);
+
+      if (uploadResult.status < 200 || uploadResult.status >= 300) {
+        throw new Error(`Upload failed with status ${uploadResult.status}: ${uploadResult.body}`);
+      }
+
+      const parsed = JSON.parse(uploadResult.body);
+      console.log("[uploadPhoto] Upload successful, storageId:", parsed.storageId);
+      return parsed.storageId;
+    } catch (error) {
+      console.error("[uploadPhoto] FileSystem.uploadAsync execution failed:", error);
+      throw error;
+    }
   }, [generateUploadUrl]);
 
   const uploadPhotos = useCallback(

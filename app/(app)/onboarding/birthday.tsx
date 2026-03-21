@@ -17,7 +17,7 @@ export default function BirthdayScreen() {
 
   const handleContinue = () => {
     router.push({
-      pathname: "/(app)/onboarding/gender",
+      pathname: "/(app)/onboarding/birth-time",
       params: { ...params, dateOfBirth: birthDate.getTime().toString() },
     });
   };
