@@ -70,6 +70,11 @@ export default function CompleteScreen() {
         const longitude = params.longitude ? parseFloat(params.longitude as string) : undefined;
         const maxDistance = params.maxDistance ? parseInt(params.maxDistance as string, 10) : undefined;
 
+        // Deal-breaker params (optional)
+        const dealBreakers_religion = (params.dealBreakers_religion as string) || "Any";
+        const dealBreakers_familyBackground = (params.dealBreakers_familyBackground as string) || "Any";
+        const dealBreakers_politicalView = (params.dealBreakers_politicalView as string) || "Any";
+
         setStatus("generating");
 
         await createProfile({
@@ -88,6 +93,11 @@ export default function CompleteScreen() {
             location: { latitude, longitude },
           }),
           ...(maxDistance !== undefined && { maxDistance }),
+          dealBreakers: {
+            religion: dealBreakers_religion,
+            familyBackground: dealBreakers_familyBackground,
+            politicalView: dealBreakers_politicalView,
+          },
         });
 
         setStatus("done");

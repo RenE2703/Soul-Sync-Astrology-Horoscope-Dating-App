@@ -31,7 +31,7 @@ export default function InterestsScreen() {
 
   const handleContinue = () => {
     router.push({
-      pathname: "/(app)/onboarding/photos",
+      pathname: "/(app)/onboarding/deal-breakers",
       params: { ...params, interests: JSON.stringify(selected) },
     });
   };
@@ -73,7 +73,7 @@ export default function InterestsScreen() {
       </View>
 
       <Animated.View entering={FadeInUp.delay(400).duration(500)} style={styles.footer}>
-        <GlassButton onPress={handleContinue} label="Complete Profile" disabled={!isValid} />
+        <GlassButton onPress={handleContinue} label="Continue" disabled={!isValid} />
       </Animated.View>
     </View>
   );

@@ -25,6 +25,7 @@ export default function OnboardingLayout() {
       <Stack.Screen name="location" />
       <Stack.Screen name="bio" />
       <Stack.Screen name="interests" />
+      <Stack.Screen name="deal-breakers" />
       <Stack.Screen name="photos" />
       <Stack.Screen name="complete" options={{ gestureEnabled: false, headerShown: false }} />
     </Stack>
