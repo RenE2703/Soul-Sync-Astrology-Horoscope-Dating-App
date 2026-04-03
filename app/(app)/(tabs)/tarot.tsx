@@ -11,6 +11,7 @@ import { GlassButton, GlassCard } from "@/components/glass";
 import { AdaptiveGlassView } from "@/lib/glass";
 import { api } from "@/convex/_generated/api";
 import { useAppTheme } from "@/lib/theme";
+import Markdown from 'react-native-markdown-display';
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_IMAGE_WIDTH = SCREEN_WIDTH * 0.55;
@@ -159,9 +160,17 @@ export default function TarotTab() {
                 </Text>
               </View>
               <GlassCard style={[styles.readingCard, { borderColor: colors.primary + "20" }]}>
-                <Text style={[styles.readingText, { color: colors.onSurface }]}>
+                <Markdown
+                  style={{
+                    body: { ...styles.readingText, color: colors.onSurface },
+                    strong: { fontWeight: "800", color: colors.primary, marginTop: 8, marginBottom: 4 },
+                    em: { fontStyle: "italic", opacity: 0.9 },
+                    bullet_list: { marginTop: 4, marginBottom: 12 },
+                    list_item: { marginBottom: 4 }
+                  }}
+                >
                   {currentReading.reading}
-                </Text>
+                </Markdown>
               </GlassCard>
             </Animated.View>
 

@@ -1,7 +1,8 @@
 import { v } from "convex/values";
 import { action, query, mutation } from "./_generated/server";
 import { api } from "./_generated/api";
-import { generateChatCompletion } from "./lib/openai";
+import { generateTarotInsight } from "./lib/ai_service";
+import { calculateTodayTransits } from "./lib/daily_transits";
 
 // ====================================================
 // TAROT CARD DATABASE (78-card Rider-Waite deck)
@@ -378,86 +379,51 @@ export const drawDailyCard = action({
     // 3. Build deeply personalized AI prompt using ALL user data
     const systemInstruction = `You are SoulSync's mystical Tarot reader — an ancient soul who blends Western Astrology, Vietnamese Tử Vi, and Tarot wisdom. You give warm, specific, personally relevant readings that feel like they were written just for this one person. Never give generic advice.`;
 
-    // Gather ALL available user context for maximum personalization
-    let userProfile = "";
+    // Today's context
+    const transits = calculateTodayTransits();
 
-    // Name & basics
-    userProfile += `\n- Name: ${user.name}`;
-    userProfile += `\n- Age: ${user.age}, Gender: ${user.gender}`;
+    const dataToAnalyze = {
+      user_context: {
+        name: user.name,
+        age: user.age,
+        gender: user.gender,
+        bio: user.bio,
+        interests: user.interests,
+        astrology_data: user.astrologyData,
+        preferred_system: user.preferredSystem,
+        looking_for: user.lookingFor,
+        deal_breakers: user.dealBreakers
+      },
+      tarot_card: {
+        name: card.name,
+        element: card.element,
+        general_meaning: card.meaning,
+        love_meaning: card.loveMeaning,
+        keywords: card.keywords
+      },
+      daily_transit_astrology: transits.westernTransits,
+      daily_lunar_fortune: transits.lunarFortune
+    };
 
-    // Bio (personality insight)
-    if (user.bio) {
-      userProfile += `\n- Their self-description: "${user.bio}"`;
-    }
+    // 4. Generate personalized reading via Gemini with Master Prompt Schema
+    const aiResult = await generateTarotInsight(dataToAnalyze);
+    const readingJson = aiResult.daily_reading;
+    
+    // Format JSON into beautiful Markdown for the frontend to render smoothly
+    const readingMarkdown = `**🔮 Luận giải riêng cho bạn:**
+${readingJson.card_meaning_personal}
 
-    // Interests (lifestyle)
-    if (user.interests && user.interests.length > 0) {
-      userProfile += `\n- Passions & interests: ${user.interests.join(", ")}`;
-    }
+**🌌 Dấu ấn các vì sao hôm nay:**
+${readingJson.celestial_sync}
 
-    // Astrology data
-    if (user.astrologyData) {
-      userProfile += `\n- Western Astrology: Sun in ${user.astrologyData.sun}, Moon in ${user.astrologyData.moon}, Rising ${user.astrologyData.rising}`;
-      if (user.astrologyData.canChi && user.astrologyData.canChi !== "Ẩn số") {
-        userProfile += `\n- Vietnamese Tử Vi: Born year ${user.astrologyData.canChi}, Bản Mệnh ${user.astrologyData.banMenh}`;
-      }
-    }
+**💡 Lời khuyên Tarot:**
+✅ Nên làm:
+${readingJson.daily_advice.should_do.map((doAct: string) => "- " + doAct).join("\\n")}
 
-    // Preferred system
-    userProfile += `\n- Prefers: ${user.preferredSystem === "tuvi" ? "Vietnamese Tử Vi" : "Western Astrology"}`;
+⚠️ Cần tránh:
+${readingJson.daily_advice.should_avoid.map((avoidAct: string) => "- " + avoidAct).join("\\n")}
 
-    // Dating preferences
-    if (user.lookingFor && user.lookingFor.length > 0) {
-      userProfile += `\n- Looking for: ${user.lookingFor.join(", ")}`;
-    }
-    if (user.ageRange) {
-      userProfile += `\n- Preferred age range: ${user.ageRange.min}-${user.ageRange.max}`;
-    }
-
-    // Deal-breakers (relationship values)
-    if (user.dealBreakers) {
-      const db = user.dealBreakers;
-      const values = [];
-      if (db.religion && db.religion !== "Any") values.push(`Religion: ${db.religion}`);
-      if (db.familyBackground && db.familyBackground !== "Any") values.push(`Family: ${db.familyBackground}`);
-      if (db.politicalView && db.politicalView !== "Any") values.push(`Politics: ${db.politicalView}`);
-      if (values.length > 0) {
-        userProfile += `\n- Core values (deal-breakers): ${values.join(", ")}`;
-      }
-    }
-
-    // Today's date context
-    const today = new Date();
-    const dayOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][today.getDay()];
-    const monthName = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"][today.getMonth()];
-
-    const prompt = `${systemInstruction}
-
-=== USER PROFILE ===
-${userProfile}
-
-=== CARD DRAWN ===
-Card: "${card.name}"
-Element: ${card.element}
-General meaning: ${card.meaning}
-Love meaning: ${card.loveMeaning}
-Keywords: ${card.keywords.join(", ")}
-
-=== TODAY'S CONTEXT ===
-Date: ${dayOfWeek}, ${monthName} ${today.getDate()}, ${today.getFullYear()}
-
-=== YOUR TASK ===
-Write a personalized 4-5 sentence daily love and energy reading for ${user.name}. Requirements:
-1. Reference their specific zodiac/Tử Vi traits and how the card interacts with their cosmic energy
-2. Mention at least ONE of their interests or personality traits from their bio
-3. Give a concrete, actionable love tip for today (not vague platitudes)
-4. If they prefer Tử Vi, weave in Vietnamese cosmic philosophy naturally
-5. End with an encouraging, warm closing that feels personal
-
-Write in a mystical but grounded tone — poetic yet practical. Make them feel truly seen.`;
-
-    // 4. Generate personalized reading
-    const readingText = await generateChatCompletion(prompt, { maxTokens: 400, temperature: 0.8 });
+*"${readingJson.vibe_quote}"*`.trim();
 
     // 5. Save to DB (with image and meaning)
     await ctx.runMutation(api.tarot.saveReading, {
@@ -466,14 +432,14 @@ Write in a mystical but grounded tone — poetic yet practical. Make them feel t
       cardName: card.name,
       cardImage: card.image,
       cardMeaning: card.loveMeaning,
-      reading: readingText,
+      reading: readingMarkdown,
     });
 
     return {
       cardName: card.name,
       cardImage: card.image,
       cardMeaning: card.loveMeaning,
-      reading: readingText,
+      reading: readingMarkdown,
     };
   },
 });
