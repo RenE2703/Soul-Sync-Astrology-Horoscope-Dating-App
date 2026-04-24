@@ -25,6 +25,22 @@ import { AppColors, useAppTheme } from "@/lib/theme";
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const PHOTO_HEIGHT = SCREEN_HEIGHT * 0.55;
 
+// Zodiac sign emoji and element mapping
+const ZODIAC_INFO: Record<string, { emoji: string; element: string }> = {
+  Aries: { emoji: "♈", element: "Fire" },
+  Taurus: { emoji: "♉", element: "Earth" },
+  Gemini: { emoji: "♊", element: "Air" },
+  Cancer: { emoji: "♋", element: "Water" },
+  Leo: { emoji: "♌", element: "Fire" },
+  Virgo: { emoji: "♍", element: "Earth" },
+  Libra: { emoji: "♎", element: "Air" },
+  Scorpio: { emoji: "♏", element: "Water" },
+  Sagittarius: { emoji: "♐", element: "Fire" },
+  Capricorn: { emoji: "♑", element: "Earth" },
+  Aquarius: { emoji: "♒", element: "Air" },
+  Pisces: { emoji: "♓", element: "Water" },
+};
+
 export default function ProfileScreen() {
   const { colors } = useAppTheme();
   const { signOut } = useAuth();
@@ -254,6 +270,75 @@ export default function ProfileScreen() {
                   </AdaptiveGlassView>
                 ))}
               </View>
+            </View>
+          )}
+
+          {/* Astrology Section */}
+          {profile.astrologyData && (
+            <View style={styles.astrologySection}>
+              <Text style={[styles.sectionLabel, { color: colors.onSurfaceVariant }]}>
+                COSMIC PROFILE
+              </Text>
+              <View style={styles.astrologyGrid}>
+                {/* Sun Sign */}
+                <AdaptiveGlassView style={styles.astrologyCard}>
+                  <Text style={styles.astrologyEmoji}>
+                    {ZODIAC_INFO[profile.astrologyData.sun]?.emoji || "☀️"}
+                  </Text>
+                  <Text style={[styles.astrologyLabel, { color: colors.onSurfaceVariant }]}>Sun</Text>
+                  <Text style={[styles.astrologyValue, { color: colors.onBackground }]}>
+                    {profile.astrologyData.sun}
+                  </Text>
+                  <Text style={[styles.astrologyElement, { color: colors.primary }]}>
+                    {ZODIAC_INFO[profile.astrologyData.sun]?.element || ""}
+                  </Text>
+                </AdaptiveGlassView>
+
+                {/* Moon Sign */}
+                <AdaptiveGlassView style={styles.astrologyCard}>
+                  <Text style={styles.astrologyEmoji}>
+                    {ZODIAC_INFO[profile.astrologyData.moon]?.emoji || "🌙"}
+                  </Text>
+                  <Text style={[styles.astrologyLabel, { color: colors.onSurfaceVariant }]}>Moon</Text>
+                  <Text style={[styles.astrologyValue, { color: colors.onBackground }]}>
+                    {profile.astrologyData.moon}
+                  </Text>
+                  <Text style={[styles.astrologyElement, { color: colors.primary }]}>
+                    {ZODIAC_INFO[profile.astrologyData.moon]?.element || ""}
+                  </Text>
+                </AdaptiveGlassView>
+
+                {/* Rising Sign */}
+                <AdaptiveGlassView style={styles.astrologyCard}>
+                  <Text style={styles.astrologyEmoji}>
+                    {ZODIAC_INFO[profile.astrologyData.rising]?.emoji || "⬆️"}
+                  </Text>
+                  <Text style={[styles.astrologyLabel, { color: colors.onSurfaceVariant }]}>Rising</Text>
+                  <Text style={[styles.astrologyValue, { color: colors.onBackground }]}>
+                    {profile.astrologyData.rising}
+                  </Text>
+                  <Text style={[styles.astrologyElement, { color: colors.primary }]}>
+                    {ZODIAC_INFO[profile.astrologyData.rising]?.element || ""}
+                  </Text>
+                </AdaptiveGlassView>
+              </View>
+
+              {/* Vietnamese Tu Vi (if available) */}
+              {profile.astrologyData.canChi && profile.astrologyData.canChi !== "Ẩn số" && (
+                <AdaptiveGlassView style={styles.tuViCard}>
+                  <View style={styles.tuViContent}>
+                    <View style={[styles.tuViIcon, { backgroundColor: colors.primary + "20" }]}>
+                      <Text style={{ fontSize: 20 }}>☯️</Text>
+                    </View>
+                    <View style={styles.tuViDetails}>
+                      <Text style={[styles.tuViLabel, { color: colors.onSurfaceVariant }]}>Tử Vi</Text>
+                      <Text style={[styles.tuViValue, { color: colors.onBackground }]}>
+                        {profile.astrologyData.canChi} · {profile.astrologyData.banMenh}
+                      </Text>
+                    </View>
+                  </View>
+                </AdaptiveGlassView>
+              )}
             </View>
           )}
 
@@ -550,6 +635,77 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     letterSpacing: 0.2,
+  },
+  // Looking For Section
+  // Astrology Section
+  astrologySection: {
+    marginBottom: 28,
+  },
+  astrologyGrid: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 12,
+  },
+  astrologyCard: {
+    flex: 1,
+    borderRadius: 16,
+    padding: 14,
+    alignItems: "center",
+  },
+  astrologyEmoji: {
+    fontSize: 28,
+    marginBottom: 6,
+  },
+  astrologyLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
+    marginBottom: 4,
+  },
+  astrologyValue: {
+    fontSize: 14,
+    fontWeight: "700",
+    marginBottom: 4,
+    textAlign: "center",
+  },
+  astrologyElement: {
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: 0.3,
+  },
+  // Tu Vi Section
+  tuViCard: {
+    borderRadius: 20,
+    padding: 18,
+    marginTop: 4,
+  },
+  tuViContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  tuViIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  tuViDetails: {
+    flex: 1,
+  },
+  tuViLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    letterSpacing: 0.5,
+    marginBottom: 2,
+    textTransform: "uppercase",
+  },
+  tuViValue: {
+    fontSize: 16,
+    fontWeight: "600",
+    letterSpacing: -0.2,
   },
   // Looking For Section
   lookingForSection: {

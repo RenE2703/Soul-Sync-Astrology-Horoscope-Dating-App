@@ -38,6 +38,13 @@ export default defineSchema({
       })
     ),
     maxDistance: v.optional(v.number()), // in miles
+    dealBreakers: v.optional(
+      v.object({
+        religion: v.optional(v.string()),           // e.g. "Buddhist", "Christian", "Any"
+        familyBackground: v.optional(v.string()),    // e.g. "Traditional", "Modern", "Any"
+        politicalView: v.optional(v.string()),       // e.g. "Liberal", "Conservative", "Any"
+      })
+    ),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -105,6 +112,8 @@ export default defineSchema({
     userId: v.id("users"),
     date: v.string(), // "YYYY-MM-DD"
     cardName: v.string(),
+    cardImage: v.optional(v.string()),   // Public domain card illustration URL
+    cardMeaning: v.optional(v.string()), // Love-specific card interpretation
     reading: v.string(),
   }).index("by_user_and_date", ["userId", "date"]),
 });

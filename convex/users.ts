@@ -97,6 +97,13 @@ export const createProfile = internalMutation({
       })
     ),
     maxDistance: v.optional(v.number()),
+    dealBreakers: v.optional(
+      v.object({
+        religion: v.optional(v.string()),
+        familyBackground: v.optional(v.string()),
+        politicalView: v.optional(v.string()),
+      })
+    ),
   },
   handler: async (ctx, args): Promise<Id<"users">> => {
     const now = Date.now();
@@ -134,6 +141,13 @@ export const createProfileWithEmbedding = action({
       })
     ),
     maxDistance: v.optional(v.number()),
+    dealBreakers: v.optional(
+      v.object({
+        religion: v.optional(v.string()),
+        familyBackground: v.optional(v.string()),
+        politicalView: v.optional(v.string()),
+      })
+    ),
   },
   handler: async (ctx, args): Promise<Id<"users">> => {
     // Combine profile data for embedding

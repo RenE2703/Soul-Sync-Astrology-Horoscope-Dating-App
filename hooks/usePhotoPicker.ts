@@ -65,27 +65,50 @@ export function usePhotoPicker(options: UsePhotoPickerOptions = {}): UsePhotoPic
     const contentType = mimeTypes[extension] || "image/jpeg";
 
     try {
-      console.log(`[uploadPhoto] Starting Native FileSystem upload. URI: ${uri}, ContentType: ${contentType}`);
-      
-      // Use standard upload API for Native
-      const uploadResult = await FileSystem.uploadAsync(uploadUrl, uri, {
-        httpMethod: "POST",
-        // @ts-ignore
-        uploadType: FileSystem.FileSystemUploadType ? FileSystem.FileSystemUploadType.BINARY_CONTENT : 0,
-        headers: { "Content-Type": contentType },
-      });
+      if (Platform.OS === "web") {
+        console.log(`[uploadPhoto] Starting Web fetch upload. URI: ${uri}, ContentType: ${contentType}`);
+        // For web, ImagePicker returns a blob/data URI, we fetch it first to get the actual Blob
+        const response = await fetch(uri);
+        const blob = await response.blob();
 
-      console.log("[uploadPhoto] FileSystem upload completed with status:", uploadResult.status);
+        const uploadResponse = await fetch(uploadUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": contentType,
+          },
+          body: blob,
+        });
 
-      if (uploadResult.status < 200 || uploadResult.status >= 300) {
-        throw new Error(`Upload failed with status ${uploadResult.status}: ${uploadResult.body}`);
+        if (!uploadResponse.ok) {
+          throw new Error(`Upload failed with status ${uploadResponse.status}: ${await uploadResponse.text()}`);
+        }
+
+        const parsed = await uploadResponse.json();
+        console.log("[uploadPhoto] Web Upload successful, storageId:", parsed.storageId);
+        return parsed.storageId;
+      } else {
+        console.log(`[uploadPhoto] Starting Native FileSystem upload. URI: ${uri}, ContentType: ${contentType}`);
+        
+        // Use standard upload API for Native
+        const uploadResult = await FileSystem.uploadAsync(uploadUrl, uri, {
+          httpMethod: "POST",
+          // @ts-ignore
+          uploadType: FileSystem.FileSystemUploadType ? FileSystem.FileSystemUploadType.BINARY_CONTENT : 0,
+          headers: { "Content-Type": contentType },
+        });
+
+        console.log("[uploadPhoto] FileSystem upload completed with status:", uploadResult.status);
+
+        if (uploadResult.status < 200 || uploadResult.status >= 300) {
+          throw new Error(`Upload failed with status ${uploadResult.status}: ${uploadResult.body}`);
+        }
+
+        const parsed = JSON.parse(uploadResult.body);
+        console.log("[uploadPhoto] Native Upload successful, storageId:", parsed.storageId);
+        return parsed.storageId;
       }
-
-      const parsed = JSON.parse(uploadResult.body);
-      console.log("[uploadPhoto] Upload successful, storageId:", parsed.storageId);
-      return parsed.storageId;
     } catch (error) {
-      console.error("[uploadPhoto] FileSystem.uploadAsync execution failed:", error);
+      console.error("[uploadPhoto] Upload execution failed:", error);
       throw error;
     }
   }, [generateUploadUrl]);

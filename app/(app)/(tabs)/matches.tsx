@@ -159,6 +159,7 @@ export default function DailyPicksScreen() {
     <View style={styles.cardWrapper}>
       <DailyPickCard
         user={item.user}
+        currentUser={currentUser}
         matchScore={item.score}
         aiExplanation={item.aiExplanation}
         sharedInterests={item.sharedInterests}

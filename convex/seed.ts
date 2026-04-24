@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { action, internalMutation, mutation } from "./_generated/server";
+import { action, internalMutation, internalQuery, mutation } from "./_generated/server";
 import { generateEmbedding } from "./lib/openai";
 
 const CELEBS = [
@@ -201,6 +201,55 @@ export const batchInsertUsers = internalMutation({
     }
 });
 
+// Internal query: get all users for backfill
+export const getAllUsersInternal = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query("users").collect();
+  },
+});
+
+// Internal mutation: patch a single user's astrology data
+export const patchUserAstrology = internalMutation({
+  args: {
+    userId: v.id("users"),
+    astrologyData: v.object({
+      sun: v.string(),
+      moon: v.string(),
+      rising: v.string(),
+      canChi: v.string(),
+      banMenh: v.string(),
+    }),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.userId, {
+      astrologyData: args.astrologyData,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+// Vietnamese → English zodiac name mapping (for fixing seed data)
+const VN_TO_EN_ZODIAC: Record<string, string> = {
+  "Bạch Dương (Aries)": "Aries",
+  "Kim Ngưu (Taurus)": "Taurus",
+  "Song Tử (Gemini)": "Gemini",
+  "Cự Giải (Cancer)": "Cancer",
+  "Sư Tử (Leo)": "Leo",
+  "Xử Nữ (Virgo)": "Virgo",
+  "Thiên Bình (Libra)": "Libra",
+  "Bọ Cạp (Scorpio)": "Scorpio",
+  "Nhân Mã (Sagittarius)": "Sagittarius",
+  "Ma Kết (Capricorn)": "Capricorn",
+  "Bảo Bình (Aquarius)": "Aquarius",
+  "Song Ngư (Pisces)": "Pisces",
+};
+
+/**
+ * Quick fix: patches all users with Vietnamese zodiac names to English,
+ * and fills "Unknown" moon/rising with the sun sign as fallback.
+ * This is instant and doesn't call any external APIs.
+ */
 export const fixMissingData = internalMutation({
   args: {},
   handler: async (ctx) => {
@@ -210,22 +259,55 @@ export const fixMissingData = internalMutation({
       const updates: any = {};
       
       if (!user.birthTime) {
-        updates.birthTime = "12:00am";
+        updates.birthTime = "12:00";
       }
       
-      if (!user.astrologyData) {
-        // Simple Sun sign based on dateOfBirth
+      if (user.astrologyData) {
+        let needsFix = false;
+        const astro = { ...user.astrologyData };
+        
+        // Fix Vietnamese sun sign names → English
+        if (VN_TO_EN_ZODIAC[astro.sun]) {
+          astro.sun = VN_TO_EN_ZODIAC[astro.sun];
+          needsFix = true;
+        }
+        if (VN_TO_EN_ZODIAC[astro.moon]) {
+          astro.moon = VN_TO_EN_ZODIAC[astro.moon];
+          needsFix = true;
+        }
+        if (VN_TO_EN_ZODIAC[astro.rising]) {
+          astro.rising = VN_TO_EN_ZODIAC[astro.rising];
+          needsFix = true;
+        }
+
+        // Fill "Unknown" moon/rising with sun sign as fallback
+        if (astro.moon === "Unknown" || !astro.moon) {
+          astro.moon = astro.sun;
+          needsFix = true;
+        }
+        if (astro.rising === "Unknown" || !astro.rising) {
+          astro.rising = astro.sun;
+          needsFix = true;
+        }
+
+        if (needsFix) {
+          updates.astrologyData = astro;
+        }
+      } else {
+        // No astrology data at all — create from dateOfBirth
         const date = new Date(user.dateOfBirth || 0);
         const day = date.getDate();
         const month = date.getMonth() + 1;
-        
         const sign = getSunSign(month, day);
+        // Convert to English if needed
+        const englishSign = VN_TO_EN_ZODIAC[sign] || sign;
+
         updates.astrologyData = {
-          sun: sign,
-          moon: "Unknown",
-          rising: "Unknown",
-          canChi: "Unknown",
-          banMenh: "Unknown",
+          sun: englishSign,
+          moon: englishSign,
+          rising: englishSign,
+          canChi: "Ẩn số",
+          banMenh: "Ẩn số",
         };
       }
       
@@ -236,6 +318,67 @@ export const fixMissingData = internalMutation({
     }
     return `Fixed data for ${count} users.`;
   }
+});
+
+/**
+ * Full backfill: calls Free Astrology API + Gemini to compute proper
+ * Western astrology + Vietnamese Tử Vi for users with missing/incomplete data.
+ * 
+ * Run this from the Convex dashboard:
+ *   npx convex run seed:backfillAstrologyData
+ */
+export const backfillAstrologyData = action({
+  args: {},
+  handler: async (ctx) => {
+    // Step 1: Quick fix — convert Vietnamese names and fill Unknown fields instantly
+    await ctx.runMutation(internal.seed.fixMissingData);
+    console.log("Step 1: Quick fix complete (VN names → EN, Unknown → fallback)");
+
+    // Step 2: Full API backfill for users with placeholder Tử Vi data
+    const { calculateAstrologyData } = await import("./lib/astrology");
+
+    const allUsers: any[] = await ctx.runQuery(internal.seed.getAllUsersInternal);
+    
+    let updated = 0;
+    let skipped = 0;
+    
+    for (const user of allUsers) {
+      const astro = user.astrologyData;
+      
+      // Skip if already has real Tử Vi data (not "Ẩn số" / "Unknown")
+      const hasRealTuVi = astro?.canChi && astro.canChi !== "Ẩn số" && astro.canChi !== "Unknown";
+      
+      if (hasRealTuVi) {
+        skipped++;
+        continue;
+      }
+
+      try {
+        console.log(`Backfilling astrology for: ${user.name} (${user._id})`);
+        const newAstro = await calculateAstrologyData(
+          user.dateOfBirth,
+          user.birthTime || "12:00"
+        );
+        
+        await ctx.runMutation(internal.seed.patchUserAstrology, {
+          userId: user._id,
+          astrologyData: newAstro,
+        });
+        
+        updated++;
+        
+        // Rate limit: 3 users between pauses
+        if (updated % 3 === 0) {
+          console.log(`  Progress: ${updated} updated, ${skipped} skipped...`);
+          await new Promise(r => setTimeout(r, 2000));
+        }
+      } catch (error) {
+        console.error(`Failed for ${user.name}:`, error);
+      }
+    }
+    
+    return `Backfill complete! Updated: ${updated}, Skipped (already had data): ${skipped}, Total: ${allUsers.length}`;
+  },
 });
 
 function getSunSign(month: number, day: number): string {
