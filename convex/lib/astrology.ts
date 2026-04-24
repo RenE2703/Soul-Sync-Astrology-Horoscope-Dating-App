@@ -1,4 +1,3 @@
-"use node";
 import { processLocationAndTime } from "./geocoding";
 import { calculateWesternAstrology } from "./western_astrology";
 import { calculateEasternAstrology } from "./eastern_astrology";

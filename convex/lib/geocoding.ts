@@ -1,16 +1,5 @@
-"use node";
-import NodeGeocoder from "node-geocoder";
 import tzlookup from "tz-lookup";
 import { DateTime } from "luxon";
-
-/**
- * Configure Geocoder (Using OpenStreetMap / Nominatim which is free and requires no API key,
- * though less accurate than Google Maps. Good enough for astrology city-level precision).
- */
-const geocoder = NodeGeocoder({
-  provider: "openstreetmap",
-  formatter: null,
-});
 
 export interface GeocodingResult {
   latitude: number;
@@ -39,10 +28,15 @@ export async function processLocationAndTime(
   
   if (location && location.trim() !== "") {
     try {
-      const res = await geocoder.geocode(location);
-      if (res && res.length > 0 && res[0].latitude && res[0].longitude) {
-        latitude = res[0].latitude;
-        longitude = res[0].longitude;
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&limit=1`, {
+        headers: {
+          "User-Agent": "SoulSyncApp/1.0"
+        }
+      });
+      const res = await response.json();
+      if (res && res.length > 0 && res[0].lat && res[0].lon) {
+        latitude = parseFloat(res[0].lat);
+        longitude = parseFloat(res[0].lon);
       }
     } catch (e) {
       console.warn(`Geocoding failed for '${location}', falling back to default coordinates. Error:`, e);
