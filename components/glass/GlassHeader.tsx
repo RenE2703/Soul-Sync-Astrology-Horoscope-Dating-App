@@ -168,6 +168,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
+    maxWidth: 1200,
+    marginHorizontal: "auto",
+    width: "100%",
   },
   mainSection: {
     flex: 1,

@@ -522,6 +522,9 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
+    maxWidth: 800,
+    marginHorizontal: "auto",
+    width: "100%",
   },
   section: { 
     marginBottom: 28,
@@ -686,6 +689,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 12,
     elevation: 8,
+    maxWidth: 800,
+    marginHorizontal: "auto",
+    width: "100%",
   },
   saveButtonDisabled: {
     shadowOpacity: 0,

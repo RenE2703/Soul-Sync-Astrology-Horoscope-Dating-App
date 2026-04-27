@@ -73,7 +73,7 @@ function FloatingHeart({
         animatedStyle,
       ]}
     >
-      <SymbolView name="heart.fill" size={size} tintColor="#FF6B6B" />
+      <SymbolView name="heart.fill" size={size} tintColor="#fd297b" />
     </Animated.View>
   );
 }
@@ -145,7 +145,7 @@ export default function SignUpScreen() {
   const getPasswordStrength = () => {
     if (password.length === 0) return { level: 0, label: "", color: "#E5E5E5" };
     if (password.length < 6)
-      return { level: 1, label: "Too short", color: "#FF6B6B" };
+      return { level: 1, label: "Too short", color: "#fd297b" };
     if (password.length < 8)
       return { level: 2, label: "Weak", color: "#FFB347" };
     if (password.length < 12)
@@ -205,7 +205,7 @@ export default function SignUpScreen() {
           >
             <View style={styles.logoContainer}>
               <LinearGradient
-                colors={["#FF6B6B", "#FF8E8E"]}
+                colors={["#fd297b", "#ff655b"]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.logoGradient}
@@ -243,7 +243,7 @@ export default function SignUpScreen() {
                 <SymbolView
                   name="envelope.fill"
                   size={20}
-                  tintColor={emailFocused ? "#FF6B6B" : "#999999"}
+                  tintColor={emailFocused ? "#fd297b" : "#999999"}
                 />
               </View>
               <TextInput
@@ -272,7 +272,7 @@ export default function SignUpScreen() {
                   <SymbolView
                     name="lock.fill"
                     size={20}
-                    tintColor={passwordFocused ? "#FF6B6B" : "#999999"}
+                    tintColor={passwordFocused ? "#fd297b" : "#999999"}
                   />
                 </View>
                 <TextInput
@@ -377,7 +377,7 @@ export default function SignUpScreen() {
               ]}
             >
               <LinearGradient
-                colors={["#FF6B6B", "#FF5252"]}
+                colors={["#fd297b", "#ff655b"]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.buttonGradient}
@@ -495,7 +495,7 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
   },
   inputContainerFocused: {
-    borderColor: "#FF6B6B",
+    borderColor: "#fd297b",
     backgroundColor: "#FFFFFF",
   },
   inputIconContainer: {
@@ -543,7 +543,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   termsLink: {
-    color: "#FF6B6B",
+    color: "#fd297b",
     fontWeight: "600",
   },
   errorContainer: {
@@ -629,6 +629,6 @@ const styles = StyleSheet.create({
   signInLink: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#FF6B6B",
+    color: "#fd297b",
   },
 });

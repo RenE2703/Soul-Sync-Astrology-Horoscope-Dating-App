@@ -4,12 +4,13 @@ import { Platform } from "react-native";
 
 import { supportsGlassEffect } from "@/lib/glass";
 import { AppColors, useAppTheme } from "@/lib/theme";
+import { WebTopNav } from "@/components/navigation/WebTopNav";
 
 export default function TabLayout() {
   const { colors } = useAppTheme();
 
   // Use NativeTabs on iOS 26+, fallback to regular Tabs on other platforms
-  if (supportsGlassEffect) {
+  if (supportsGlassEffect && Platform.OS !== "web") {
     // Lazy require to avoid loading iOS-only modules on Android
     const { NativeTabs } = require("expo-router/unstable-native-tabs");
     const { DynamicColorIOS } = require("react-native");
@@ -25,56 +26,39 @@ export default function TabLayout() {
         }}
         tintColor={AppColors.primary}
       >
-        {/* Discover / Swipe Feed */}
         <NativeTabs.Trigger name="index">
           <NativeTabs.Trigger.Label>Discover</NativeTabs.Trigger.Label>
-          <NativeTabs.Trigger.Icon
-            sf={{ default: "heart", selected: "heart.fill" }}
-            md="favorite"
-          />
+          <NativeTabs.Trigger.Icon sf={{ default: "heart", selected: "heart.fill" }} md="favorite" />
         </NativeTabs.Trigger>
-
-        {/* AI Suggested Matches */}
         <NativeTabs.Trigger name="matches">
           <NativeTabs.Trigger.Label>AI Matches</NativeTabs.Trigger.Label>
           <NativeTabs.Trigger.Icon sf="sparkles" md="auto_awesome" />
         </NativeTabs.Trigger>
-
-        {/* Chat / Messages */}
         <NativeTabs.Trigger name="chat">
           <NativeTabs.Trigger.Label>Chat</NativeTabs.Trigger.Label>
-          <NativeTabs.Trigger.Icon
-            sf={{ default: "message", selected: "message.fill" }}
-            md="chat"
-          />
+          <NativeTabs.Trigger.Icon sf={{ default: "message", selected: "message.fill" }} md="chat" />
         </NativeTabs.Trigger>
-
-        {/* Profile */}
-        <NativeTabs.Trigger name="profile">
-          <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
-          <NativeTabs.Trigger.Icon
-            sf={{ default: "person", selected: "person.fill" }}
-            md="person"
-          />
-        </NativeTabs.Trigger>
-
-        {/* Daily Tarot */}
         <NativeTabs.Trigger name="tarot">
           <NativeTabs.Trigger.Label>Tarot</NativeTabs.Trigger.Label>
           <NativeTabs.Trigger.Icon sf={{ default: "moon", selected: "moon.fill" }} md="star" />
+        </NativeTabs.Trigger>
+        <NativeTabs.Trigger name="profile">
+          <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Icon sf={{ default: "person", selected: "person.fill" }} md="person" />
         </NativeTabs.Trigger>
       </NativeTabs>
     );
   }
 
-  // Fallback to regular Tabs for non-iOS 26 devices
+  // Fallback to regular Tabs for web and non-iOS 26 devices
   return (
     <Tabs
+      tabBar={Platform.OS === "web" ? (props) => <WebTopNav {...props} /> : undefined}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: AppColors.primary,
         tabBarInactiveTintColor: colors.onSurfaceVariant,
-        tabBarStyle: {
+        tabBarStyle: Platform.OS === "web" ? undefined : {
           backgroundColor: colors.background,
           paddingTop: 10,
           marginTop: -65,
@@ -95,11 +79,7 @@ export default function TabLayout() {
         options={{
           title: "Discover",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? "heart" : "heart-outline"}
-              size={24}
-              color={color}
-            />
+            <Ionicons name={focused ? "heart" : "heart-outline"} size={24} color={color} />
           ),
         }}
       />
@@ -108,11 +88,7 @@ export default function TabLayout() {
         options={{
           title: "AI Matches",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? "sparkles" : "sparkles-outline"}
-              size={24}
-              color={color}
-            />
+            <Ionicons name={focused ? "sparkles" : "sparkles-outline"} size={24} color={color} />
           ),
         }}
       />
@@ -121,24 +97,7 @@ export default function TabLayout() {
         options={{
           title: "Chat",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? "chatbubble" : "chatbubble-outline"}
-              size={24}
-              color={color}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: "Profile",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? "person" : "person-outline"}
-              size={24}
-              color={color}
-            />
+            <Ionicons name={focused ? "chatbubble" : "chatbubble-outline"} size={24} color={color} />
           ),
         }}
       />
@@ -147,11 +106,16 @@ export default function TabLayout() {
         options={{
           title: "Tarot",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? "moon" : "moon-outline"}
-              size={24}
-              color={color}
-            />
+            <Ionicons name={focused ? "moon" : "moon-outline"} size={24} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: "Profile",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? "person" : "person-outline"} size={24} color={color} />
           ),
         }}
       />

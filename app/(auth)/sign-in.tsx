@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useSignIn } from "@clerk/clerk-expo";
 import { LinearGradient } from "expo-linear-gradient";
 import { Link } from "expo-router";
@@ -78,7 +79,7 @@ function FloatingHeart({
         animatedStyle,
       ]}
     >
-      <SymbolView name="heart.fill" size={size} tintColor="#FF6B6B" />
+      <SymbolView name="heart.fill" size={size} tintColor="#fd297b" />
     </Animated.View>
   );
 }
@@ -249,12 +250,14 @@ export default function SignInScreen() {
           >
             <View style={styles.logoContainer}>
               <LinearGradient
-                colors={["#FF6B6B", "#FF8E8E"]}
+                colors={["#fd297b", "#ff655b"]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.logoGradient}
               >
-                <SymbolView name="heart.fill" size={42} tintColor="#FFFFFF" />
+                <View style={styles.heartContainer}>
+                  <Ionicons name="heart" size={48} color="#FFFFFF" />
+                </View>
               </LinearGradient>
             </View>
             <Text style={styles.logoText}>SoulSync</Text>
@@ -277,7 +280,7 @@ export default function SignInScreen() {
                 <SymbolView
                   name="envelope.fill"
                   size={20}
-                  tintColor={emailFocused ? "#FF6B6B" : "#999999"}
+                  tintColor={emailFocused ? "#fd297b" : "#999999"}
                 />
               </View>
               <TextInput
@@ -305,7 +308,7 @@ export default function SignInScreen() {
                 <SymbolView
                   name="lock.fill"
                   size={20}
-                  tintColor={passwordFocused ? "#FF6B6B" : "#999999"}
+                  tintColor={passwordFocused ? "#fd297b" : "#999999"}
                 />
               </View>
               <TextInput
@@ -378,7 +381,7 @@ export default function SignInScreen() {
               ]}
             >
               <LinearGradient
-                colors={["#FF6B6B", "#FF5252"]}
+                colors={["#fd297b", "#ff655b"]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.buttonGradient}
@@ -435,6 +438,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  heartContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  innerHeartOverlay: {
+    position: "absolute",
+    justifyContent: "center",
+    alignItems: "center",
+  },
   logoText: {
     fontSize: 32,
     fontWeight: "800",
@@ -460,7 +472,7 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
   },
   inputContainerFocused: {
-    borderColor: "#FF6B6B",
+    borderColor: "#fd297b",
     backgroundColor: "#FFFFFF",
   },
   inputIconContainer: {
@@ -485,7 +497,7 @@ const styles = StyleSheet.create({
   },
   forgotPasswordText: {
     fontSize: 14,
-    color: "#FF6B6B",
+    color: "#fd297b",
     fontWeight: "600",
   },
   errorContainer: {
@@ -536,6 +548,6 @@ const styles = StyleSheet.create({
   signUpLink: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#FF6B6B",
+    color: "#fd297b",
   },
 });

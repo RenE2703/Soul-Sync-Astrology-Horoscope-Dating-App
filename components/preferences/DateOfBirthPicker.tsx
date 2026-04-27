@@ -1,5 +1,6 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Platform, StyleSheet, Text, View } from "react-native";
+import { createElement } from "react";
 
 import {
   calculateAgeFromDate,
@@ -34,6 +35,50 @@ export function DateOfBirthPicker({
     }
   };
 
+  const renderPicker = () => {
+    if (Platform.OS === "web") {
+      // Use native HTML date input on web
+      const dateString = value.toISOString().split("T")[0];
+      return createElement("input", {
+        type: "date",
+        value: dateString,
+        max: getMaxDateOfBirth().toISOString().split("T")[0],
+        min: getMinDateOfBirth().toISOString().split("T")[0],
+        onChange: (e: any) => {
+          const newDate = new Date(e.target.value);
+          if (!isNaN(newDate.getTime())) {
+            handleChange(null, newDate);
+          }
+        },
+        style: {
+          padding: "16px 18px",
+          borderRadius: "16px",
+          border: "2px solid transparent",
+          fontSize: "16px",
+          width: "100%",
+          backgroundColor: "#F8F8F8",
+          color: "#1A1A1A",
+          outline: "none",
+          fontFamily: "inherit",
+          cursor: "pointer",
+        },
+      });
+    }
+
+    return (
+      <DateTimePicker
+        value={value}
+        mode="date"
+        display={Platform.OS === "ios" ? "spinner" : "default"}
+        onChange={handleChange}
+        maximumDate={getMaxDateOfBirth()}
+        minimumDate={getMinDateOfBirth()}
+        themeVariant="light"
+        style={styles.datePicker}
+      />
+    );
+  };
+
   return (
     <View style={styles.container}>
       {showAgeCard && (
@@ -43,16 +88,7 @@ export function DateOfBirthPicker({
         </View>
       )}
       <View style={styles.datePickerWrapper}>
-        <DateTimePicker
-          value={value}
-          mode="date"
-          display={Platform.OS === "ios" ? "spinner" : "default"}
-          onChange={handleChange}
-          maximumDate={getMaxDateOfBirth()}
-          minimumDate={getMinDateOfBirth()}
-          themeVariant="light"
-          style={styles.datePicker}
-        />
+        {renderPicker()}
       </View>
     </View>
   );

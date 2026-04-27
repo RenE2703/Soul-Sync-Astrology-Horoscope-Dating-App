@@ -6,9 +6,10 @@ import { StyleProp, View, ViewProps, ViewStyle } from "react-native";
 import { useAppTheme } from "@/lib/theme";
 
 /**
- * Glass effect support detection using expo-glass-effect API
+ * Glass effect support detection.
+ * Forced to false for Expo Go compatibility since native modules require development builds.
  */
-export const supportsGlassEffect = isLiquidGlassAvailable();
+export const supportsGlassEffect = false; // Set to false to ensure Expo Go compatibility
 
 /**
  * Common fallback styles for non-glass UI elements

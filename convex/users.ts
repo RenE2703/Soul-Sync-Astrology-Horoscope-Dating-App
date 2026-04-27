@@ -220,10 +220,14 @@ export const updateProfile = mutation({
       updatedAt: Date.now(),
     });
 
-    // Schedule embedding regeneration if bio or interests changed
-    if (updates.bio !== undefined || updates.interests !== undefined) {
+    // Schedule embedding regeneration if bio or interests changed, or if astrology needs recalculation
+    const needsAstrologyUpdate = dateOfBirth !== undefined;
+    const needsEmbeddingUpdate = updates.bio !== undefined || updates.interests !== undefined || needsAstrologyUpdate;
+
+    if (needsEmbeddingUpdate) {
       await ctx.scheduler.runAfter(0, internal.users.updateEmbeddingInternal_action, {
         userId: id,
+        recalculateAstrology: needsAstrologyUpdate,
       });
     }
   },
@@ -243,9 +247,32 @@ export const updateEmbeddingInternal = internalMutation({
   },
 });
 
+// Internal mutation to update astrology data
+export const updateAstrologyInternal = internalMutation({
+  args: {
+    userId: v.id("users"),
+    astrologyData: v.object({
+      sun: v.string(),
+      moon: v.string(),
+      rising: v.string(),
+      canChi: v.string(),
+      banMenh: v.string(),
+    }),
+  },
+  handler: async (ctx, args): Promise<void> => {
+    await ctx.db.patch(args.userId, {
+      astrologyData: args.astrologyData,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
 // Internal action to regenerate embedding after profile changes
 export const updateEmbeddingInternal_action = internalAction({
-  args: { userId: v.id("users") },
+  args: { 
+    userId: v.id("users"),
+    recalculateAstrology: v.optional(v.boolean()),
+  },
   handler: async (ctx, args): Promise<void> => {
     const user = await ctx.runQuery(internal.users.getInternal, {
       id: args.userId,
@@ -253,9 +280,28 @@ export const updateEmbeddingInternal_action = internalAction({
 
     if (!user) throw new Error("User not found");
 
+    let astrologyData = user.astrologyData;
+
+    // Recalculate astrology if requested and we have a DOB
+    if (args.recalculateAstrology && user.dateOfBirth) {
+      const newAstrology = await calculateAstrologyData(user.dateOfBirth, user.birthTime);
+      if (newAstrology) {
+        astrologyData = newAstrology;
+        await ctx.runMutation(internal.users.updateAstrologyInternal, {
+          userId: args.userId,
+          astrologyData: newAstrology,
+        });
+      }
+    }
+
     const profileText = buildProfileText(user.bio, user.interests);
 
-    const embedding: number[] = await generateEmbedding(profileText);
+    // Make sure to include astrology context for the AI, just like at profile creation
+    const enhancedProfileText = astrologyData
+      ? `${profileText}. Astrological traits: Western Sun in ${astrologyData.sun}, Moon in ${astrologyData.moon}, Rising in ${astrologyData.rising}. Eastern Bát Tự: Năm ${astrologyData.canChi}, Bản Mệnh ${astrologyData.banMenh}. Prefer matching based on: ${user.preferredSystem ?? "western"}.`
+      : profileText;
+
+    const embedding: number[] = await generateEmbedding(enhancedProfileText);
 
     await ctx.runMutation(internal.users.updateEmbeddingInternal, {
       userId: args.userId,

@@ -1,5 +1,6 @@
 import { useQuery } from "convex/react";
 import { useRouter } from "expo-router";
+import { useState } from "react";
 import {
   FlatList,
   Image,
@@ -7,9 +8,12 @@ import {
   Text,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 
+import { ChatRoom } from "@/components/chat";
 import { EmptyState } from "@/components/ui";
 
 import { api } from "@/convex/_generated/api";
@@ -21,6 +25,10 @@ export default function ChatListScreen() {
   const { colors } = useAppTheme();
   const { currentUser } = useCurrentUser();
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  
+  const isLargeScreen = width >= 768;
+  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
 
   // Get matches with last message
   const matchesWithMessages = useQuery(
@@ -53,12 +61,21 @@ export default function ChatListScreen() {
       ? item.lastMessage.content
       : "Say hi! 👋";
 
+    const isSelected = isLargeScreen && selectedChatId === item._id;
+
     return (
       <TouchableOpacity
-        style={[styles.chatItem, { backgroundColor: colors.surface }]}
+        style={[
+          styles.chatItem, 
+          { backgroundColor: isSelected ? colors.primaryContainer : "transparent" }
+        ]}
         onPress={() => {
           hapticButtonPress();
-          router.push(`/(app)/chat/${item._id}`);
+          if (isLargeScreen) {
+            setSelectedChatId(item._id);
+          } else {
+            router.push(`/(app)/chat/${item._id}`);
+          }
         }}
         activeOpacity={0.7}
       >
@@ -73,10 +90,10 @@ export default function ChatListScreen() {
 
         <View style={styles.chatContent}>
           <View style={styles.chatHeader}>
-            <Text style={[styles.chatName, { color: colors.onBackground }]}>
+            <Text style={[styles.chatName, { color: isSelected ? colors.onPrimaryContainer : colors.onBackground }]}>
               {item.otherUser.name}
             </Text>
-            <Text style={[styles.chatTime, { color: colors.onSurfaceVariant }]}>
+            <Text style={[styles.chatTime, { color: isSelected ? colors.onPrimaryContainer : colors.onSurfaceVariant, opacity: 0.8 }]}>
               {lastMessageTime}
             </Text>
           </View>
@@ -84,10 +101,11 @@ export default function ChatListScreen() {
             style={[
               styles.chatPreview,
               {
-                color: item.unreadCount > 0
-                  ? colors.onBackground
-                  : colors.onSurfaceVariant,
+                color: isSelected 
+                  ? colors.onPrimaryContainer 
+                  : (item.unreadCount > 0 ? colors.onBackground : colors.onSurfaceVariant),
                 fontWeight: item.unreadCount > 0 ? "600" : "400",
+                opacity: isSelected ? 0.9 : 1,
               },
             ]}
             numberOfLines={1}
@@ -125,7 +143,11 @@ export default function ChatListScreen() {
                 style={styles.newMatchItem}
                 onPress={() => {
                   hapticButtonPress();
-                  router.push(`/(app)/chat/${item._id}`);
+                  if (isLargeScreen) {
+                    setSelectedChatId(item._id);
+                  } else {
+                    router.push(`/(app)/chat/${item._id}`);
+                  }
                 }}
               >
                 <Image source={{ uri: imageUri }} style={styles.newMatchAvatar} />
@@ -145,15 +167,12 @@ export default function ChatListScreen() {
 
   const conversations = matchesWithMessages?.filter((m) => m.lastMessage) || [];
 
-  return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      edges={["top"]}
-    >
+  const renderListContent = () => (
+    <>
       {/* Header */}
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.onBackground }]}>
-          Messages
+          Chats
         </Text>
       </View>
 
@@ -173,6 +192,39 @@ export default function ChatListScreen() {
           showsVerticalScrollIndicator={false}
         />
       )}
+    </>
+  );
+
+  return (
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={["top"]}
+    >
+      {isLargeScreen ? (
+        // Split-pane Desktop Layout
+        <View style={styles.splitLayout}>
+          {/* Left Sidebar: List */}
+          <View style={[styles.sidebar, { backgroundColor: colors.surface, borderColor: colors.outline + "40" }]}>
+            {renderListContent()}
+          </View>
+
+          {/* Right Pane: Chat Room */}
+          <View style={[styles.chatPane, { backgroundColor: colors.surface, borderColor: colors.outline + "40" }]}>
+            {selectedChatId ? (
+              <ChatRoom matchId={selectedChatId} />
+            ) : (
+              <View style={styles.emptyPane}>
+                <Ionicons name="chatbubbles-outline" size={64} color={colors.onSurfaceVariant} style={{ opacity: 0.5, marginBottom: 16 }} />
+                <Text style={[styles.emptyPaneTitle, { color: colors.onBackground }]}>Your Messages</Text>
+                <Text style={[styles.emptyPaneSubtitle, { color: colors.onSurfaceVariant }]}>Select a chat from the list to start messaging.</Text>
+              </View>
+            )}
+          </View>
+        </View>
+      ) : (
+        // Standard Mobile Layout
+        renderListContent()
+      )}
     </SafeAreaView>
   );
 }
@@ -181,13 +233,49 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  splitLayout: {
+    flex: 1,
+    flexDirection: "row",
+    maxWidth: 1400,
+    marginHorizontal: "auto",
+    width: "100%",
+    padding: 24,
+    gap: 20,
+  },
+  sidebar: {
+    width: 340,
+    height: "100%",
+    borderRadius: 24,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  chatPane: {
+    flex: 1,
+    height: "100%",
+    borderRadius: 24,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  emptyPane: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  emptyPaneTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+    marginBottom: 8,
+  },
+  emptyPaneSubtitle: {
+    fontSize: 16,
+  },
   header: {
     paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingVertical: 16,
   },
   title: {
     fontSize: 28,
-    fontWeight: "700",
+    fontWeight: "800",
   },
   list: {
     paddingBottom: 20,
@@ -197,12 +285,12 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "700",
     paddingHorizontal: 20,
-    marginBottom: 12,
+    marginBottom: 16,
   },
   newMatchesList: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     gap: 16,
   },
   newMatchItem: {
@@ -213,37 +301,41 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    marginBottom: 4,
+    marginBottom: 8,
   },
   newMatchName: {
-    fontSize: 12,
-    fontWeight: "500",
+    fontSize: 13,
+    fontWeight: "600",
     textAlign: "center",
   },
   chatItem: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
-    paddingHorizontal: 20,
-    gap: 12,
+    padding: 12,
+    marginHorizontal: 10,
+    marginBottom: 4,
+    borderRadius: 16,
+    gap: 14,
   },
   avatarContainer: {
     position: "relative",
   },
   avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
   },
   unreadBadge: {
     position: "absolute",
     top: -2,
     right: -2,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     justifyContent: "center",
     alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
   },
   unreadCount: {
     color: "#fff",
@@ -264,9 +356,9 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   chatTime: {
-    fontSize: 12,
+    fontSize: 13,
   },
   chatPreview: {
-    fontSize: 14,
+    fontSize: 15,
   },
 });

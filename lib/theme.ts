@@ -1,17 +1,17 @@
 import { useMaterial3Theme } from "@pchmn/expo-material3-theme";
 import { useColorScheme } from "react-native";
 
-// SoulSync app primary color - Mystic Yellow
-export const SEED_COLOR = "#F5CB5C";
+// SoulSync app primary color - Tinder Pink
+export const SEED_COLOR = "#fd297b";
 
-// Custom color palette for the spiritual dating app
+// Custom color palette for the dating app
 export const AppColors = {
-  primary: "#F5CB5C",
+  primary: "#fd297b", // Tinder Pink
   secondary: "#2D3142", // Mystic dark
-  accent: "#FFD166", // Brighter yellow for highlights
+  accent: "#ff655b", // Tinder Orange
   like: "#4CD964",
   reject: "#FF3B30",
-  match: "#FF2D55",
+  match: "#a652ba", // Purple for matches/super likes
   background: {
     light: "#FFFFFF",
     dark: "#000000",

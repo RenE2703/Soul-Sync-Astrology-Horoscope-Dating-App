@@ -3,7 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAction, useQuery } from "convex/react";
 import { LinearGradient } from "expo-linear-gradient";
 import { useState } from "react";
-import { Dimensions, Image, StyleSheet, Text, View, ScrollView } from "react-native";
+import { Image, StyleSheet, Text, View, ScrollView, useWindowDimensions } from "react-native";
 import Animated, { FadeIn, FadeInDown, FadeInUp } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -13,13 +13,15 @@ import { api } from "@/convex/_generated/api";
 import { useAppTheme } from "@/lib/theme";
 import Markdown from 'react-native-markdown-display';
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const CARD_IMAGE_WIDTH = SCREEN_WIDTH * 0.55;
-const CARD_IMAGE_HEIGHT = CARD_IMAGE_WIDTH * 1.75; // Tarot card ratio ~1:1.75
-
 export default function TarotTab() {
   const { user } = useUser();
   const { colors } = useAppTheme();
+  const { width } = useWindowDimensions();
+  
+  // Responsive sizing
+  const isLargeScreen = width >= 768;
+  const cardWidth = isLargeScreen ? 320 : width * 0.55;
+  const cardHeight = cardWidth * 1.75; // Tarot card ratio ~1:1.75
 
   const existingReading = useQuery(
     api.tarot.getTodayReading,
@@ -50,15 +52,21 @@ export default function TarotTab() {
 
   const currentReading = existingReading || drawnData;
 
+  const renderHeader = () => (
+    <View style={[styles.header, isLargeScreen && { alignItems: "flex-start", marginBottom: 24, width: cardWidth }]}>
+      <Text style={[styles.title, { color: colors.onBackground, textAlign: isLargeScreen ? "left" : "center" }]}>Mystic Guidance</Text>
+      <Text style={[styles.subtitle, { color: colors.onSurfaceVariant, textAlign: isLargeScreen ? "left" : "center" }]}>
+        Your daily SoulSync tarot reading
+      </Text>
+    </View>
+  );
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={["top", "left", "right"]}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.onBackground }]}>Mystic Guidance</Text>
-          <Text style={[styles.subtitle, { color: colors.onSurfaceVariant }]}>
-            Your daily SoulSync tarot reading
-          </Text>
-        </View>
+        
+        {/* On mobile, show header at the top */}
+        {!isLargeScreen && renderHeader()}
 
         {existingReading === undefined ? (
           <View style={[styles.content, { justifyContent: "center" }]}>
@@ -71,116 +79,128 @@ export default function TarotTab() {
           </View>
         ) : !currentReading ? (
           // === CARD BACK (not yet drawn) ===
-          <View style={styles.content}>
-            <GlassCard style={styles.cardBack}>
-              <LinearGradient
-                colors={["#1a1a2e", "#16213e", "#0f3460"]}
-                style={styles.cardBackGradient}
-              >
-                <Animated.View entering={FadeIn.delay(200).duration(800)}>
-                  <Text style={styles.cardBackStar}>✦</Text>
-                </Animated.View>
-                <Animated.View entering={FadeIn.delay(400).duration(800)}>
-                  <Text style={styles.cardBackDesign}>☽ ✧ ☯ ✧ ☾</Text>
-                </Animated.View>
-                <Animated.View entering={FadeIn.delay(600).duration(800)}>
-                  <Text style={styles.cardBackStar}>✦</Text>
-                </Animated.View>
-                <View style={styles.cardBackBorder} />
-              </LinearGradient>
-            </GlassCard>
+          <View style={[styles.content, isLargeScreen && styles.contentLarge]}>
+            {/* Left Column (Card & Button) */}
+            <View style={[styles.leftColumn, isLargeScreen && styles.leftColumnLarge]}>
+              {isLargeScreen && renderHeader()}
+              <GlassCard style={[styles.cardBack, { width: cardWidth + 20, height: cardHeight + 20 }]}>
+                <LinearGradient
+                  colors={["#1a1a2e", "#16213e", "#0f3460"]}
+                  style={styles.cardBackGradient}
+                >
+                  <Animated.View entering={FadeIn.delay(200).duration(800)}>
+                    <Text style={styles.cardBackStar}>✦</Text>
+                  </Animated.View>
+                  <Animated.View entering={FadeIn.delay(400).duration(800)}>
+                    <Text style={styles.cardBackDesign}>☽ ✧ ☯ ✧ ☾</Text>
+                  </Animated.View>
+                  <Animated.View entering={FadeIn.delay(600).duration(800)}>
+                    <Text style={styles.cardBackStar}>✦</Text>
+                  </Animated.View>
+                  <View style={styles.cardBackBorder} />
+                </LinearGradient>
+              </GlassCard>
 
-            <Animated.View entering={FadeInDown.delay(300).duration(500)} style={styles.instructionContainer}>
-              <Text style={[styles.instructionText, { color: colors.onSurfaceVariant }]}>
-                Focus on your romantic energy...
-              </Text>
-              <Text style={[styles.instructionSubtext, { color: colors.onSurfaceVariant }]}>
-                The cards will reveal your love guidance for today
-              </Text>
-            </Animated.View>
+              <Animated.View entering={FadeInUp.delay(500)} style={[styles.buttonContainer, { width: cardWidth + 20 }]}>
+                <GlassButton
+                  label={isDrawing ? "✨ Shuffling..." : "Draw My Daily Card"}
+                  onPress={handleDraw}
+                  disabled={isDrawing}
+                />
+              </Animated.View>
+            </View>
 
-            <Animated.View entering={FadeInUp.delay(500)} style={styles.buttonContainer}>
-              <GlassButton
-                label={isDrawing ? "✨ Shuffling the deck..." : "Draw My Daily Card"}
-                onPress={handleDraw}
-                disabled={isDrawing}
-              />
-            </Animated.View>
+            {/* Right Column (Instructions) */}
+            <View style={[styles.rightColumn, isLargeScreen && styles.rightColumnLarge]}>
+              <Animated.View entering={FadeInDown.delay(300).duration(500)} style={[styles.instructionContainer, isLargeScreen && { alignItems: "flex-start", marginTop: 40 }]}>
+                <Text style={[styles.instructionText, { color: colors.onSurfaceVariant }]}>
+                  Focus on your romantic energy...
+                </Text>
+                <Text style={[styles.instructionSubtext, { color: colors.onSurfaceVariant, textAlign: isLargeScreen ? "left" : "center" }]}>
+                  The cards will reveal your love guidance for today
+                </Text>
+              </Animated.View>
+            </View>
           </View>
         ) : (
           // === CARD FRONT (drawn — show results) ===
-          <Animated.View entering={FadeInDown.duration(800)} style={styles.content}>
-            {/* Card Image */}
-            {currentReading.cardImage ? (
-              <Animated.View entering={FadeIn.delay(200).duration(600)} style={styles.cardImageContainer}>
-                <Image
-                  source={{ uri: currentReading.cardImage }}
-                  style={styles.cardImage}
-                  resizeMode="contain"
-                />
-                <LinearGradient
-                  colors={["transparent", "rgba(0,0,0,0.08)"]}
-                  style={styles.cardImageShadow}
-                />
+          <Animated.View entering={FadeInDown.duration(800)} style={[styles.content, isLargeScreen && styles.contentLarge]}>
+            
+            {/* Left Column (Card & Name) */}
+            <View style={[styles.leftColumn, isLargeScreen && styles.leftColumnLarge]}>
+              {isLargeScreen && renderHeader()}
+
+              {/* Card Meaning Badge (Moved here) */}
+              {currentReading.cardMeaning ? (
+                <Animated.View entering={FadeIn.delay(600).duration(500)} style={[isLargeScreen && { alignItems: "flex-start" }, { marginBottom: 20, width: cardWidth }]}>
+                  <AdaptiveGlassView style={[styles.meaningBadge, { borderColor: colors.primary + "30" }]}>
+                    <Ionicons name="sparkles" size={16} color={colors.primary} />
+                    <Text style={[styles.meaningLabel, { color: colors.primary }]}>Love Meaning</Text>
+                  </AdaptiveGlassView>
+                  <Text style={[styles.meaningText, { color: colors.onSurfaceVariant, textAlign: isLargeScreen ? "left" : "center" }]}>
+                    {currentReading.cardMeaning}
+                  </Text>
+                </Animated.View>
+              ) : null}
+
+              {currentReading.cardImage ? (
+                <Animated.View entering={FadeIn.delay(200).duration(600)} style={[styles.cardImageContainer, { width: cardWidth, height: cardHeight }]}>
+                  <Image
+                    source={{ uri: currentReading.cardImage }}
+                    style={styles.cardImage}
+                    resizeMode="contain"
+                  />
+                  <LinearGradient
+                    colors={["transparent", "rgba(0,0,0,0.08)"]}
+                    style={styles.cardImageShadow}
+                  />
+                </Animated.View>
+              ) : null}
+
+              {/* Card Name */}
+              <Animated.Text
+                entering={FadeIn.delay(400).duration(500)}
+                style={[styles.cardName, { color: colors.onBackground }]}
+              >
+                {currentReading.cardName}
+              </Animated.Text>
+            </View>
+
+            {/* Right Column (Meaning & Reading) */}
+            <View style={[styles.rightColumn, isLargeScreen && styles.rightColumnLarge]}>
+
+              {/* Personalized Reading */}
+              <Animated.View entering={FadeIn.delay(800).duration(600)}>
+                <View style={styles.readingHeader}>
+                  <Ionicons name="moon" size={18} color={colors.primary} />
+                  <Text style={[styles.readingHeaderText, { color: colors.onBackground }]}>
+                    Your Personal Reading
+                  </Text>
+                </View>
+                <GlassCard style={[styles.readingCard, { borderColor: colors.primary + "20" }]}>
+                  <Markdown
+                    style={{
+                      body: { ...styles.readingText, color: colors.onSurface },
+                      strong: { fontWeight: "800", color: colors.primary, marginTop: 8, marginBottom: 4 },
+                      em: { fontStyle: "italic", opacity: 0.9 },
+                      bullet_list: { marginTop: 4, marginBottom: 12 },
+                      list_item: { marginBottom: 4 }
+                    }}
+                  >
+                    {currentReading.reading}
+                  </Markdown>
+                </GlassCard>
               </Animated.View>
-            ) : null}
 
-            {/* Card Name */}
-            <Animated.Text
-              entering={FadeIn.delay(400).duration(500)}
-              style={[styles.cardName, { color: colors.onBackground }]}
-            >
-              {currentReading.cardName}
-            </Animated.Text>
-
-            {/* Card Meaning Badge */}
-            {currentReading.cardMeaning ? (
-              <Animated.View entering={FadeIn.delay(600).duration(500)}>
-                <AdaptiveGlassView style={[styles.meaningBadge, { borderColor: colors.primary + "30" }]}>
-                  <Ionicons name="sparkles" size={16} color={colors.primary} />
-                  <Text style={[styles.meaningLabel, { color: colors.primary }]}>Love Meaning</Text>
-                </AdaptiveGlassView>
-                <Text style={[styles.meaningText, { color: colors.onSurfaceVariant }]}>
-                  {currentReading.cardMeaning}
+              {/* Come Back */}
+              <Animated.View entering={FadeIn.delay(1000).duration(500)} style={styles.comeBackContainer}>
+                <Ionicons name="time-outline" size={16} color={colors.onSurfaceVariant} />
+                <Text style={[styles.comeBackText, { color: colors.onSurfaceVariant }]}>
+                  Come back tomorrow for a new reading!
                 </Text>
               </Animated.View>
-            ) : null}
+            </View>
 
-            {/* Divider */}
-            <Animated.View entering={FadeIn.delay(700).duration(500)}>
-              <View style={[styles.divider, { backgroundColor: colors.outline + "40" }]} />
-            </Animated.View>
-
-            {/* Personalized Reading */}
-            <Animated.View entering={FadeIn.delay(800).duration(600)}>
-              <View style={styles.readingHeader}>
-                <Ionicons name="moon" size={18} color={colors.primary} />
-                <Text style={[styles.readingHeaderText, { color: colors.onBackground }]}>
-                  Your Personal Reading
-                </Text>
-              </View>
-              <GlassCard style={[styles.readingCard, { borderColor: colors.primary + "20" }]}>
-                <Markdown
-                  style={{
-                    body: { ...styles.readingText, color: colors.onSurface },
-                    strong: { fontWeight: "800", color: colors.primary, marginTop: 8, marginBottom: 4 },
-                    em: { fontStyle: "italic", opacity: 0.9 },
-                    bullet_list: { marginTop: 4, marginBottom: 12 },
-                    list_item: { marginBottom: 4 }
-                  }}
-                >
-                  {currentReading.reading}
-                </Markdown>
-              </GlassCard>
-            </Animated.View>
-
-            {/* Come Back */}
-            <Animated.View entering={FadeIn.delay(1000).duration(500)} style={styles.comeBackContainer}>
-              <Ionicons name="time-outline" size={16} color={colors.onSurfaceVariant} />
-              <Text style={[styles.comeBackText, { color: colors.onSurfaceVariant }]}>
-                Come back tomorrow for a new reading!
-              </Text>
-            </Animated.View>
           </Animated.View>
         )}
       </ScrollView>
@@ -191,10 +211,37 @@ export default function TarotTab() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scroll: { flexGrow: 1, padding: 24, paddingBottom: 100 },
-  header: { marginBottom: 28 },
+  header: { marginBottom: 28, alignItems: "center" },
   title: { fontSize: 34, fontWeight: "800", marginBottom: 8, letterSpacing: -0.5 },
-  subtitle: { fontSize: 16, opacity: 0.8 },
+  subtitle: { fontSize: 16, opacity: 0.8, textAlign: "center" },
   content: { flex: 1, alignItems: "center" },
+  
+  // Large Screen Layout overrides
+  contentLarge: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "center",
+    gap: 40,
+    maxWidth: 1200,
+    marginHorizontal: "auto",
+  },
+  leftColumn: {
+    alignItems: "center",
+  },
+  leftColumnLarge: {
+    flex: 0.4,
+    minWidth: 320,
+    position: "sticky",
+    top: 24,
+  },
+  rightColumn: {
+    alignItems: "center",
+    width: "100%",
+  },
+  rightColumnLarge: {
+    flex: 0.6,
+    alignItems: "flex-start",
+  },
 
   // Loading
   loadingContainer: { alignItems: "center", paddingTop: 100 },
@@ -203,8 +250,6 @@ const styles = StyleSheet.create({
 
   // Card Back (not drawn yet)
   cardBack: {
-    width: CARD_IMAGE_WIDTH + 20,
-    height: CARD_IMAGE_HEIGHT + 20,
     borderRadius: 20,
     overflow: "hidden",
     padding: 0,
@@ -245,12 +290,10 @@ const styles = StyleSheet.create({
   instructionContainer: { alignItems: "center", marginBottom: 32 },
   instructionText: { fontSize: 18, fontWeight: "600", marginBottom: 6, textAlign: "center" },
   instructionSubtext: { fontSize: 14, opacity: 0.7, textAlign: "center" },
-  buttonContainer: { width: "100%", marginTop: "auto", marginBottom: 40 },
+  buttonContainer: { marginTop: "auto", marginBottom: 20 },
 
   // Card Image (drawn)
   cardImageContainer: {
-    width: CARD_IMAGE_WIDTH,
-    height: CARD_IMAGE_HEIGHT,
     borderRadius: 16,
     overflow: "hidden",
     marginBottom: 20,
@@ -287,7 +330,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    alignSelf: "center",
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 20,
@@ -302,7 +344,6 @@ const styles = StyleSheet.create({
   meaningText: {
     fontSize: 16,
     lineHeight: 24,
-    textAlign: "center",
     fontStyle: "italic",
     marginBottom: 4,
     paddingHorizontal: 8,
@@ -312,7 +353,6 @@ const styles = StyleSheet.create({
   divider: {
     width: 60,
     height: 1.5,
-    alignSelf: "center",
     marginVertical: 20,
     borderRadius: 1,
   },
@@ -334,6 +374,7 @@ const styles = StyleSheet.create({
     padding: 24,
     borderWidth: 1,
     marginBottom: 20,
+    width: "100%",
   },
   readingText: {
     fontSize: 17,

@@ -198,7 +198,7 @@ export default function ProfileScreen() {
           >
             {supportsGlassEffect ? (
               <AdaptiveGlassView style={styles.editButtonGlass} tintColor={colors.primary}>
-                <Ionicons name="pencil" size={28} color="#FFFFFF" />
+                <Ionicons name="pencil" size={22} color="#FFFFFF" />
               </AdaptiveGlassView>
             ) : (
               <LinearGradient
@@ -207,9 +207,11 @@ export default function ProfileScreen() {
                 end={{ x: 1, y: 1 }}
                 style={[styles.editButtonGlass, styles.editButtonFallback]}
               >
-                <Ionicons name="pencil" size={28} color="#FFFFFF" />
+                <Ionicons name="pencil" size={22} color="#FFFFFF" />
               </LinearGradient>
             )}
+            {/* Transparent overlay to ensure the entire button area catches clicks */}
+            <View style={{ ...StyleSheet.absoluteFillObject, zIndex: 20 }} />
           </TouchableOpacity>
         </View>
 
@@ -396,6 +398,9 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingBottom: 120,
+    maxWidth: 800,
+    marginHorizontal: "auto",
+    width: "100%",
   },
   loadingContainer: {
     flex: 1,
@@ -407,7 +412,7 @@ const styles = StyleSheet.create({
   },
   // Photo Section
   photoSection: {
-    width: SCREEN_WIDTH,
+    width: "100%",
     height: PHOTO_HEIGHT,
     position: "relative",
     overflow: "visible", // Allow edit button to extend beyond bounds
@@ -540,9 +545,13 @@ const styles = StyleSheet.create({
   },
   editButton: {
     position: "absolute",
-    bottom: -32, // Half of button height to overlap below photo section
+    bottom: -24,
     right: 24,
     zIndex: 10,
+    width: 48,
+    height: 48,
+    justifyContent: "center",
+    alignItems: "center",
     // Outer glow for visibility
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
@@ -551,20 +560,21 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   editButtonGlass: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: "100%",
+    height: "100%",
+    borderRadius: 24,
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 3,
+    borderWidth: 2,
     borderColor: "rgba(255,255,255,0.4)",
+    position: "absolute",
   },
   editButtonFallback: {
     shadowColor: "#FF4458",
-    shadowOffset: { width: 0, height: 6 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.5,
-    shadowRadius: 16,
-    elevation: 12,
+    shadowRadius: 10,
+    elevation: 8,
   },
   // Photo Gallery
   photoGallerySection: {
@@ -750,7 +760,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    marginHorizontal: 20,
+    width: 200,
+    alignSelf: "center",
     marginTop: 32,
     paddingVertical: 16,
     borderRadius: 16,
