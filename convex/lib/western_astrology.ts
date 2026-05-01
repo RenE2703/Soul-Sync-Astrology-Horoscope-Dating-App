@@ -1,19 +1,52 @@
 "use node";
-import * as Astronomy from "astronomy-engine";
+// @ts-ignore - circular-natal-horoscope-js has no type declarations
+import { Origin, Horoscope } from "circular-natal-horoscope-js";
+
+// ============================================================
+// TYPES
+// ============================================================
 
 export interface PlanetPosition {
   name: string;
-  degree: number; // 0 to 360
+  degree: number;        // 0-360 ecliptic longitude
+  sign: string;          // e.g. "Aries"
+  signDegree: number;    // 0-30 within sign
+  isRetrograde: boolean;
+  house: number;         // 1-12 house placement
+}
+
+export interface HouseCusp {
+  house: number;   // 1-12
+  degree: number;  // 0-360
   sign: string;
-  signDegree: number; // 0 to 30
+  signDegree: number;
+}
+
+export interface Aspect {
+  body1: string;
+  body2: string;
+  type: string;   // e.g. "conjunction", "trine", "square"
+  orb: number;    // how exact (lower = more exact)
+}
+
+export interface CelestialPoint {
+  name: string;
+  degree: number;
+  sign: string;
+  signDegree: number;
 }
 
 export interface WesternAstrologyData {
   planets: PlanetPosition[];
+  celestialPoints: CelestialPoint[];  // Lunar Nodes, Lilith
   houses: {
     ascendant: PlanetPosition;
     midheaven: PlanetPosition;
+    placidus: HouseCusp[];     // 12 cusps Placidus
+    wholeSign: HouseCusp[];    // 12 cusps Whole Sign
+    system: string;            // primary system used
   };
+  aspects: Aspect[];
   elements: {
     fire: number;
     earth: number;
@@ -26,6 +59,10 @@ export interface WesternAstrologyData {
     mutable: number;
   };
 }
+
+// ============================================================
+// CONSTANTS
+// ============================================================
 
 const ZODIAC_SIGNS = [
   "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
@@ -45,124 +82,252 @@ const SIGN_MODALITIES: Record<string, "cardinal" | "fixed" | "mutable"> = {
   "Gemini": "mutable", "Virgo": "mutable", "Sagittarius": "mutable", "Pisces": "mutable"
 };
 
-const PLANET_KEYS = [
-  Astronomy.Body.Sun,
-  Astronomy.Body.Moon,
-  Astronomy.Body.Mercury,
-  Astronomy.Body.Venus,
-  Astronomy.Body.Mars,
-  Astronomy.Body.Jupiter,
-  Astronomy.Body.Saturn,
-  Astronomy.Body.Uranus,
-  Astronomy.Body.Neptune,
-  Astronomy.Body.Pluto,
-];
+// ============================================================
+// HELPER FUNCTIONS
+// ============================================================
 
 function getZodiacInfo(longitude: number): { sign: string; signDegree: number } {
-  // Normalize just in case
   const normLon = ((longitude % 360) + 360) % 360;
   const index = Math.floor(normLon / 30);
   const signDegree = normLon - (index * 30);
   return {
     sign: ZODIAC_SIGNS[index],
-    signDegree,
+    signDegree: Math.round(signDegree * 100) / 100,
   };
 }
 
 /**
- * Calculates GMST (Greenwich Mean Sidereal Time) in degrees
+ * Extract sign name from a library Sign object.
+ * The library returns Sign objects with a .label property (e.g. "Aries").
  */
-function getGMST(date: Date): number {
-  const jd = new Astronomy.AstroTime(date).ut;
-  // Formula for GMST (Greenwich Mean Sidereal Time)
-  const t = (jd - 2451545.0) / 36525.0;
-  let gmst = 280.46061837 + 360.98564736629 * (jd - 2451545.0) + 0.000387933 * t * t - (t * t * t) / 38710000.0;
-  return ((gmst % 360) + 360) % 360;
+function extractSignName(signObj: any): string {
+  if (!signObj) return "Aries";
+  if (typeof signObj === "string") return signObj;
+  return signObj.label || signObj.key || signObj.name || "Aries";
 }
 
 /**
- * Calculates Ascendant (AC) and Midheaven (MC)
+ * Extract decimal degrees from a ChartPosition object.
  */
-function calculateAngles(date: Date, latitude: number, longitude: number): { ascendant: number; midheaven: number } {
-  const gmst = getGMST(date);
-  const lst = ((gmst + longitude) % 360 + 360) % 360; // Local Sidereal Time in degrees
-  
-  // Obliquity of the Ecliptic (approximate, good enough for dating app purposes ~23.439)
-  const obl = 23.4392911 * (Math.PI / 180);
-  const lstRad = lst * (Math.PI / 180);
-  const latRad = latitude * (Math.PI / 180);
-
-  // Midheaven (MC)
-  const mcRad = Math.atan2(Math.sin(lstRad), Math.cos(lstRad) * Math.cos(obl));
-  let mc = mcRad * (180 / Math.PI);
-  mc = ((mc % 360) + 360) % 360;
-
-  // Ascendant (AC)
-  const num = Math.cos(lstRad);
-  const den = -(Math.sin(lstRad) * Math.cos(obl) + Math.tan(latRad) * Math.sin(obl));
-  const ascRad = Math.atan2(num, den);
-  let asc = ascRad * (180 / Math.PI);
-  asc = ((asc % 360) + 360) % 360;
-
-  return { ascendant: asc, midheaven: mc };
+function extractDegree(chartPosition: any): number {
+  if (!chartPosition) return 0;
+  // Try Ecliptic first (standard zodiac position)
+  if (chartPosition.Ecliptic?.DecimalDegrees !== undefined) {
+    return chartPosition.Ecliptic.DecimalDegrees;
+  }
+  // Fallback to Horizon
+  if (chartPosition.Horizon?.DecimalDegrees !== undefined) {
+    return chartPosition.Horizon.DecimalDegrees;
+  }
+  return 0;
 }
 
-export function calculateWesternAstrology(utcDate: Date, latitude: number, longitude: number): WesternAstrologyData {
-  const planets: PlanetPosition[] = [];
+/**
+ * Extract house cusps from a Horoscope Houses array.
+ */
+function extractHouseCusps(houses: any[]): HouseCusp[] {
+  if (!houses || !Array.isArray(houses)) return [];
+  return houses.map((house: any, idx: number) => {
+    const degree = extractDegree(house.ChartPosition);
+    const signName = extractSignName(house.Sign);
+    const { signDegree } = getZodiacInfo(degree);
+    return {
+      house: idx + 1,
+      degree: Math.round(degree * 100) / 100,
+      sign: signName,
+      signDegree,
+    };
+  });
+}
 
+/**
+ * Determine which house (1-12) a given ecliptic degree falls in,
+ * given the house cusps.
+ */
+function findHouseForDegree(degree: number, cusps: HouseCusp[]): number {
+  if (!cusps || cusps.length < 12) return 1;
+  const normDeg = ((degree % 360) + 360) % 360;
+  for (let i = 0; i < 12; i++) {
+    const cusp = cusps[i].degree;
+    const nextCusp = cusps[(i + 1) % 12].degree;
+    if (nextCusp > cusp) {
+      // Normal case
+      if (normDeg >= cusp && normDeg < nextCusp) return i + 1;
+    } else {
+      // Wraps around 360
+      if (normDeg >= cusp || normDeg < nextCusp) return i + 1;
+    }
+  }
+  return 1;
+}
+
+// ============================================================
+// MAIN CALCULATION FUNCTION
+// ============================================================
+
+/**
+ * Calculates Western astrology data using CircularNatalHoroscopeJS.
+ * This replaces the old astronomy-engine + manual formula approach.
+ *
+ * The library handles timezone internally using tz-lookup + moment-timezone,
+ * so we pass LOCAL time + lat/lng and the library derives UTC automatically.
+ *
+ * @param localYear - Birth year
+ * @param localMonth - Birth month (0-indexed: 0=Jan, 11=Dec)
+ * @param localDay - Birth day (1-31)
+ * @param localHour - Birth hour in local time (0-23)
+ * @param localMinute - Birth minute (0-59)
+ * @param latitude - Birth location latitude
+ * @param longitude - Birth location longitude
+ */
+export function calculateWesternAstrology(
+  localYear: number,
+  localMonth: number,  // 0-indexed (0=Jan, 11=Dec) — matching Origin API
+  localDay: number,
+  localHour: number,
+  localMinute: number,
+  latitude: number,
+  longitude: number
+): WesternAstrologyData {
+
+  // 1. Create Origin (library handles timezone internally)
+  const origin = new Origin({
+    year: localYear,
+    month: localMonth,  // 0 = January, 11 = December
+    date: localDay,
+    hour: localHour,
+    minute: localMinute,
+    latitude,
+    longitude,
+  });
+
+  // 2. Create Placidus Horoscope (for AI analysis)
+  const placidusHoroscope = new Horoscope({
+    origin,
+    houseSystem: "placidus",
+    zodiac: "tropical",
+    aspectPoints: ["bodies", "points", "angles"],
+    aspectWithPoints: ["bodies", "points", "angles"],
+    aspectTypes: ["major"],
+    customOrbs: {},
+    language: "en",
+  });
+
+  // 3. Create Whole Sign Horoscope (for visual display)
+  const wholeSignHoroscope = new Horoscope({
+    origin,
+    houseSystem: "whole-sign",
+    zodiac: "tropical",
+    aspectPoints: [],
+    aspectWithPoints: [],
+    aspectTypes: [],
+    customOrbs: {},
+    language: "en",
+  });
+
+  // 4. Extract planet positions from Placidus (primary)
+  const placidusCusps = extractHouseCusps(placidusHoroscope.Houses);
+  const planets: PlanetPosition[] = [];
   const elements = { fire: 0, earth: 0, air: 0, water: 0 };
   const modalities = { cardinal: 0, fixed: 0, mutable: 0 };
 
-  // 1. Calculate Planets
-  for (const body of PLANET_KEYS) {
-    const time = new Astronomy.AstroTime(utcDate);
-    // Get Geocentric coordinates (as seen from Earth)
-    const vector = Astronomy.GeoVector(body as Astronomy.Body, time, true);
-    const eclipticCoords = Astronomy.Ecliptic(vector);
-    const eclipticLon = eclipticCoords.elon;
-    
-    // In astronomy-engine, eclipticCoords.elon is the ecliptic longitude in degrees
-    const { sign, signDegree } = getZodiacInfo(eclipticLon);
-    
-    planets.push({
-      name: typeof body === 'string' ? body : String(body),
-      degree: eclipticLon,
-      sign,
-      signDegree,
-    });
+  if (placidusHoroscope.CelestialBodies?.all) {
+    for (const body of placidusHoroscope.CelestialBodies.all) {
+      const degree = extractDegree(body.ChartPosition);
+      const signName = extractSignName(body.Sign);
+      const { signDegree } = getZodiacInfo(degree);
+      const house = findHouseForDegree(degree, placidusCusps);
 
-    const el = SIGN_ELEMENTS[sign];
-    const mod = SIGN_MODALITIES[sign];
-    elements[el]++;
-    modalities[mod]++;
+      planets.push({
+        name: body.label || body.key || "Unknown",
+        degree: Math.round(degree * 100) / 100,
+        sign: signName,
+        signDegree,
+        isRetrograde: !!body.isRetrograde,
+        house,
+      });
+
+      // Tally elements and modalities
+      if (SIGN_ELEMENTS[signName]) elements[SIGN_ELEMENTS[signName]]++;
+      if (SIGN_MODALITIES[signName]) modalities[SIGN_MODALITIES[signName]]++;
+    }
   }
 
-  // 2. Calculate Angles
-  const { ascendant, midheaven } = calculateAngles(utcDate, latitude, longitude);
-  const acInfo = getZodiacInfo(ascendant);
-  const mcInfo = getZodiacInfo(midheaven);
+  // 5. Extract celestial points (Lunar Nodes, Lilith)
+  const celestialPoints: CelestialPoint[] = [];
+  if (placidusHoroscope.CelestialPoints?.all) {
+    for (const point of placidusHoroscope.CelestialPoints.all) {
+      const degree = extractDegree(point.ChartPosition);
+      const signName = extractSignName(point.Sign);
+      const { signDegree } = getZodiacInfo(degree);
+      celestialPoints.push({
+        name: point.label || point.key || "Unknown",
+        degree: Math.round(degree * 100) / 100,
+        sign: signName,
+        signDegree,
+      });
+    }
+  }
 
-  // Add AC properties to distribution
-  elements[SIGN_ELEMENTS[acInfo.sign]]++;
-  modalities[SIGN_MODALITIES[acInfo.sign]]++;
+  // 6. Extract Ascendant and Midheaven
+  const ascendantData = placidusHoroscope.Ascendant;
+  const midheavenData = placidusHoroscope.Midheaven;
+
+  const ascDegree = extractDegree(ascendantData?.ChartPosition);
+  const ascSign = extractSignName(ascendantData?.Sign);
+  const mcDegree = extractDegree(midheavenData?.ChartPosition);
+  const mcSign = extractSignName(midheavenData?.Sign);
+
+  const ascendant: PlanetPosition = {
+    name: "Ascendant",
+    degree: Math.round(ascDegree * 100) / 100,
+    sign: ascSign,
+    signDegree: getZodiacInfo(ascDegree).signDegree,
+    isRetrograde: false,
+    house: 1,
+  };
+
+  const midheaven: PlanetPosition = {
+    name: "Midheaven",
+    degree: Math.round(mcDegree * 100) / 100,
+    sign: mcSign,
+    signDegree: getZodiacInfo(mcDegree).signDegree,
+    isRetrograde: false,
+    house: 10,
+  };
+
+  // Add Ascendant to element/modality distribution
+  if (SIGN_ELEMENTS[ascSign]) elements[SIGN_ELEMENTS[ascSign]]++;
+  if (SIGN_MODALITIES[ascSign]) modalities[SIGN_MODALITIES[ascSign]]++;
+
+  // 7. Extract Whole Sign cusps
+  const wholeSignCusps = extractHouseCusps(wholeSignHoroscope.Houses);
+
+  // 8. Extract aspects
+  const aspects: Aspect[] = [];
+  if (placidusHoroscope.Aspects?.all) {
+    for (const aspect of placidusHoroscope.Aspects.all) {
+      aspects.push({
+        body1: aspect.point1?.label || aspect.point1?.key || "Unknown",
+        body2: aspect.point2?.label || aspect.point2?.key || "Unknown",
+        type: aspect.label || aspect.key || "unknown",
+        orb: typeof aspect.orb === "number" ? Math.round(aspect.orb * 100) / 100 : 0,
+      });
+    }
+  }
 
   return {
     planets,
+    celestialPoints,
     houses: {
-      ascendant: {
-        name: "Ascendant",
-        degree: ascendant,
-        sign: acInfo.sign,
-        signDegree: acInfo.signDegree,
-      },
-      midheaven: {
-        name: "Midheaven",
-        degree: midheaven,
-        sign: mcInfo.sign,
-        signDegree: mcInfo.signDegree,
-      }
+      ascendant,
+      midheaven,
+      placidus: placidusCusps,
+      wholeSign: wholeSignCusps,
+      system: "placidus",
     },
+    aspects,
     elements,
-    modalities
+    modalities,
   };
 }

@@ -341,6 +341,30 @@ export default function ProfileScreen() {
                   </View>
                 </AdaptiveGlassView>
               )}
+
+              {/* View Full Chart Button */}
+              <TouchableOpacity
+                style={{
+                  marginTop: 16,
+                  paddingVertical: 14,
+                  backgroundColor: colors.primary + "15",
+                  borderRadius: 16,
+                  alignItems: "center",
+                  flexDirection: "row",
+                  justifyContent: "center",
+                  borderWidth: 1,
+                  borderColor: colors.primary + "30",
+                }}
+                onPress={() => {
+                  hapticButtonPress();
+                  router.push(`/natal-chart?userId=${profile._id}`);
+                }}
+              >
+                <Ionicons name="planet" size={20} color={colors.primary} style={{ marginRight: 8 }} />
+                <Text style={{ color: colors.primary, fontWeight: "600", fontSize: 15 }}>
+                  Xem Bản Đồ Sao Chi Tiết
+                </Text>
+              </TouchableOpacity>
             </View>
           )}
 

@@ -45,6 +45,8 @@ export default defineSchema({
         politicalView: v.optional(v.string()),       // e.g. "Liberal", "Conservative", "Any"
       })
     ),
+    birthLocation: v.optional(v.string()), // e.g. "Ho Chi Minh City" — used for Ascendant calculation
+    timezone: v.optional(v.string()), // IANA timezone e.g. "Asia/Ho_Chi_Minh"
     createdAt: v.number(),
     updatedAt: v.number(),
   })

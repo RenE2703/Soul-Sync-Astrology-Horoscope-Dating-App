@@ -201,11 +201,27 @@ export const batchInsertUsers = internalMutation({
     }
 });
 
-// Internal query: get all users for backfill
+// Internal query: get all users for backfill (WARNING: returns full objects including 32MB embeddings, DO NOT USE for bulk actions)
 export const getAllUsersInternal = internalQuery({
   args: {},
   handler: async (ctx) => {
     return await ctx.db.query("users").collect();
+  },
+});
+
+// Internal query: get lightweight user data for backfill (excluding embeddings)
+export const getUsersForBackfill = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db.query("users").collect();
+    return users.map(u => ({
+      _id: u._id,
+      name: u.name,
+      dateOfBirth: u.dateOfBirth,
+      birthTime: u.birthTime,
+      birthLocation: u.birthLocation,
+      location: u.location,
+    }));
   },
 });
 
@@ -321,7 +337,7 @@ export const fixMissingData = internalMutation({
 });
 
 /**
- * Full backfill: calls Free Astrology API + Gemini to compute proper
+ * Full backfill: uses CircularNatalHoroscopeJS to compute proper
  * Western astrology + Vietnamese Tử Vi for users with missing/incomplete data.
  * 
  * Run this from the Convex dashboard:
@@ -378,6 +394,60 @@ export const backfillAstrologyData = action({
     }
     
     return `Backfill complete! Updated: ${updated}, Skipped (already had data): ${skipped}, Total: ${allUsers.length}`;
+  },
+});
+
+/**
+ * FULL RECALCULATION: Uses the new CircularNatalHoroscopeJS engine to 
+ * recalculate astrology data for ALL users without exception.
+ * 
+ * This PATCHES existing user documents — no data is deleted.
+ * Only the `astrologyData` field is updated with accurate Sun/Moon/Rising/CanChi/BanMenh.
+ * 
+ * Run after switching to CircularNatalHoroscopeJS:
+ *   npx convex run seed:recalculateAllAstrology
+ */
+export const recalculateAllAstrology = action({
+  args: {},
+  handler: async (ctx) => {
+    const { calculateAstrologyData } = await import("./lib/astrology");
+    const allUsers: any[] = await ctx.runQuery(internal.seed.getUsersForBackfill);
+    
+    console.log(`Starting full recalculation for ${allUsers.length} users using CircularNatalHoroscopeJS...`);
+    
+    let updated = 0;
+    let failed = 0;
+    
+    for (const user of allUsers) {
+      try {
+        const newAstro = await calculateAstrologyData(
+          user.dateOfBirth || 0,
+          user.birthTime || "12:00",
+          user.birthLocation || "Ho Chi Minh City",
+          user.location?.latitude || 10.8231,
+          user.location?.longitude || 106.6297
+        );
+        
+        await ctx.runMutation(internal.seed.patchUserAstrology, {
+          userId: user._id,
+          astrologyData: newAstro,
+        });
+        
+        updated++;
+        
+        if (updated % 5 === 0) {
+          console.log(`  Progress: ${updated}/${allUsers.length} recalculated...`);
+        }
+        
+        // Small delay to yield to the event loop
+        await new Promise(r => setTimeout(r, 50));
+      } catch (error) {
+        failed++;
+        console.error(`Failed for ${user.name} (${user._id}):`, error);
+      }
+    }
+    
+    return `Recalculation complete! Updated: ${updated}, Failed: ${failed}, Total: ${allUsers.length}`;
   },
 });
 
