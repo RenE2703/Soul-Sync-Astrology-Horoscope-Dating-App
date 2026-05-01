@@ -66,7 +66,7 @@ export async function calculateAstrologyData(
   );
 
   // Eastern astrology uses local date
-  const localDateObj = new Date(geoResult.localDateTimestamp);
+  const localDateObj = new Date(localDateTimestamp);
   const eastern = calculateEasternAstrology(localDateObj);
 
   // Extract Sun/Moon/Rising from the new data structure
