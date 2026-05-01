@@ -66,7 +66,7 @@ export function WebTopNav({ state, descriptors, navigation }: BottomTabBarProps)
         onPress={onPress}
         style={[styles.tabButton, isProfile && styles.profileTab]}
       >
-        {IconName !== "none" && <Ionicons name={IconName as any} size={24} color={color} />}
+        <Ionicons name={IconName as any} size={24} color={color} />
         <Text style={[styles.tabLabel, { color }]}>{label as string}</Text>
       </Pressable>
     );
