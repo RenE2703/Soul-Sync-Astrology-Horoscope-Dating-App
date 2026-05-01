@@ -187,7 +187,11 @@ export default function SignUpScreen() {
             <Pressable
               onPress={() => {
                 hapticButtonPress();
-                router.back();
+                if (router.canGoBack()) {
+                  router.back();
+                } else {
+                  router.replace("/");
+                }
               }}
               style={({ pressed }) => [
                 styles.backButton,

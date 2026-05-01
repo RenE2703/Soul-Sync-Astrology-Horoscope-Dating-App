@@ -1,11 +1,11 @@
 "use dom";
 
 import React, { useEffect, useRef, useState } from "react";
-// @ts-ignore - astrochart2 might not have types
-import { Chart } from "astrochart2";
+// Dynamic import of astrochart2 inside useEffect to prevent SSR errors
 
 interface PlanetData {
-  [key: string]: [number]; // astrochart expects an array with [degree] for each planet
+  name: string;
+  angle: number;
 }
 
 interface ChartDataProps {
@@ -24,80 +24,99 @@ export default function NatalChartView({
   cusps,
   aspects,
   houseSystem,
-  dom: { window },
 }: {
   planets: any[];
   cusps: any[];
   aspects: any[];
   houseSystem: "placidus" | "wholeSign";
-  dom: any; // Expo DOM passes the window object natively via `dom` prop? 
-            // Actually `dom` props are passed automatically in Expo SDK 52. 
-            // We just need to render a div and use refs.
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [chartError, setChartError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!containerRef.current) return;
-    if (!planets || !cusps) return;
+    async function drawChart() {
+      console.log("[NatalChartView] drawChart called");
+      console.log("[NatalChartView] containerRef:", containerRef.current);
+      console.log("[NatalChartView] planets:", planets);
+      console.log("[NatalChartView] cusps:", cusps);
 
-    try {
-      // Clear previous chart
-      containerRef.current.innerHTML = "";
-
-      // Add a wrapper div with id for astrochart2
-      const chartDivId = "astro-chart-wrapper";
-      const chartDiv = document.createElement("div");
-      chartDiv.id = chartDivId;
-      containerRef.current.appendChild(chartDiv);
-
-      // Map planets to astrochart2 format: { "Sun": [degree], "Moon": [degree] }
-      const chartPlanets: PlanetData = {};
-      planets.forEach((p) => {
-        chartPlanets[p.name] = [p.degree];
-      });
-
-      // Map cusps to astrochart2 format: [cusp1, cusp2, ..., cusp12]
-      const chartCusps = cusps.sort((a, b) => a.house - b.house).map((c) => c.degree);
-
-      // Create the chart instance. It will look for the element by ID.
-      // Width/Height: 600
-      const chart = new Chart(chartDivId, 600, 600, {
-        margin: 50,
-        colorWindow: "#111827", // match app dark theme background
-        colorLine: "#4B5563",
-        colorSign: "#E5E7EB",
-        SYMBOL_SCALE: 1,
-        // Add custom styling overrides if needed
-      });
-
-      const data = {
-        planets: chartPlanets,
-        cusps: chartCusps,
-      };
-
-      const radix = chart.radix(data);
-      
-      // Draw aspects if available
-      if (aspects && aspects.length > 0) {
-        // Map aspects
-        aspects.forEach((asp) => {
-          // Astrochart2 radix aspect method
-          radix.addPointsOfInterest({
-            [asp.body1]: [planets.find(p => p.name === asp.body1)?.degree || 0],
-          });
-          // Or we can let it auto-calculate aspects by providing settings
-        });
-        
-        // Actually Astrochart2 has a specific way to draw aspects, usually it calculates them automatically.
-        // Let's just use default radix.aspects()
-        radix.aspects();
+      if (!containerRef.current) {
+        console.warn("[NatalChartView] No container ref, aborting.");
+        return;
+      }
+      if (!planets || !cusps || planets.length === 0 || cusps.length === 0) {
+        console.warn("[NatalChartView] Missing or empty planets/cusps, aborting.");
+        return;
       }
 
-    } catch (error: any) {
-      console.error("Error drawing natal chart:", error);
-      setChartError(error.message);
+      try {
+        // @ts-ignore
+        const astro = require("astrochart2/dist/astrochart2.js");
+        console.log("[NatalChartView] astrochart2 loaded, keys:", Object.keys(astro));
+        const Universe = astro.Universe ?? astro.default?.Universe ?? astro.default;
+        if (!Universe) {
+          throw new Error("Could not find Universe export in astrochart2");
+        }
+
+        // Inject the Astronomicon font from our public folder
+        if ('FontFace' in window) {
+          try {
+            const font = new (window as any).FontFace('Astronomicon', 'url(/fonts/Astronomicon.ttf)');
+            await font.load();
+            (document as any).fonts.add(font);
+            console.log('[NatalChartView] Astronomicon font loaded!');
+          } catch (fontErr) {
+            console.warn('[NatalChartView] Font load failed, using serif fallback:', fontErr);
+          }
+        }
+
+        // Clear previous chart
+        containerRef.current.innerHTML = "";
+
+        // Add a wrapper div with id for astrochart2
+        const chartDivId = "astro-chart-wrapper";
+        const chartDiv = document.createElement("div");
+        chartDiv.id = chartDivId;
+        chartDiv.style.width = "400px";
+        chartDiv.style.height = "400px";
+        containerRef.current.appendChild(chartDiv);
+
+        // Map planets to astrochart2 format: [{name: "Sun", angle: 30}, ...]
+        const chartPlanets = planets.map((p) => ({
+          name: p.name,
+          angle: p.degree ?? p.longitude ?? 0,
+        }));
+        console.log("[NatalChartView] chartPlanets:", chartPlanets.slice(0, 3));
+
+        // Map cusps to astrochart2 format: [{angle: 300}, ...]
+        const chartCusps = cusps
+          .sort((a: any, b: any) => a.house - b.house)
+          .map((c: any) => ({ angle: c.degree ?? c.angle ?? 0 }));
+        console.log("[NatalChartView] chartCusps:", chartCusps.slice(0, 3));
+
+        // Create the chart instance
+        const universe = new Universe(chartDivId, {
+          CHART_FONT_FAMILY: "Astronomicon", // served from /public/fonts/
+          CHART_MAIN_STROKE: 1.5,
+        });
+
+        const data = {
+          points: chartPlanets,
+          cusps: chartCusps,
+        };
+
+        console.log("[NatalChartView] Calling setData with:", data);
+        const radix = universe.radix();
+        radix.setData(data);
+        console.log("[NatalChartView] Chart drawn successfully!");
+
+      } catch (error: any) {
+        console.error("[NatalChartView] Error drawing natal chart:", error);
+        setChartError(error.message);
+      }
     }
+    
+    drawChart();
   }, [planets, cusps, houseSystem]);
 
   if (chartError) {
@@ -112,11 +131,13 @@ export default function NatalChartView({
     <div
       style={{
         width: "100%",
-        height: "100%",
+        height: 400,
+        minHeight: 400,
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
         backgroundColor: "transparent",
+        overflow: "hidden",
       }}
       ref={containerRef}
     />

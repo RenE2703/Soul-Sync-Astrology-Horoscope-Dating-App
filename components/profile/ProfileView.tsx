@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AstrologyBadges } from "@/components/astrology/AstrologyBadges";
 import { GlassNavButton } from "@/components/glass";
 import { PhotoIndicators, PhotoTapZones } from "@/components/ui";
 import { Doc } from "@/convex/_generated/dataModel";
@@ -191,6 +192,9 @@ export function ProfileView({ user, distance }: ProfileViewProps) {
             </AdaptiveGlassView>
           </View>
         )}
+        {/* Astrology Section */}
+        <AstrologyBadges user={user} isMatched={false} />
+
       </View>
 
       {/* Bottom padding for floating buttons + tab bar */}

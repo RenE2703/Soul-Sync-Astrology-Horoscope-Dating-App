@@ -125,13 +125,13 @@ export default function CompleteScreen() {
               entering={FadeInDown.delay(200).duration(500)}
               style={[styles.successTitle, { color: colors.onBackground }]}
             >
-              You're all set!
+              Mọi thứ đã sẵn sàng!
             </Animated.Text>
             <Animated.Text
               entering={FadeInDown.delay(300).duration(500)}
               style={[styles.successSubtitle, { color: colors.onSurfaceVariant }]}
             >
-              The cosmos is aligning your perfect match
+              Vũ trụ đang sắp xếp mảnh ghép hoàn hảo cho bạn
             </Animated.Text>
           </Animated.View>
         ) : status === "error" ? (
@@ -140,7 +140,7 @@ export default function CompleteScreen() {
               <Ionicons name="alert-circle-outline" size={48} color={colors.error} />
             </View>
             <Text style={[styles.errorTitle, { color: colors.error }]}>
-              Oops, something went wrong
+              Rất tiếc, đã có lỗi xảy ra
             </Text>
             <Text style={[styles.errorMessage, { color: colors.onSurfaceVariant }]}>
               {error}
@@ -161,15 +161,15 @@ export default function CompleteScreen() {
               entering={FadeInUp.delay(200).duration(500)}
               style={[styles.loadingTitle, { color: colors.onBackground }]}
             >
-              {status === "creating" ? "Creating your profile..." : "Generating AI magic..."}
+              {status === "creating" ? "Đang tạo hồ sơ..." : "AI đang phân tích độ tương hợp..."}
             </Animated.Text>
             <Animated.Text
               entering={FadeInUp.delay(300).duration(500)}
               style={[styles.loadingSubtitle, { color: colors.onSurfaceVariant }]}
             >
               {status === "creating"
-                ? "Setting up your account"
-                : "Building your match profile with AI"}
+                ? "Đang thiết lập tài khoản của bạn"
+                : "Đang xây dựng hồ sơ ghép đôi bằng AI"}
             </Animated.Text>
             <ActivityIndicator
               size="small"

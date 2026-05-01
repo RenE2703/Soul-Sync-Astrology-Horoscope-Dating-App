@@ -5,12 +5,14 @@ import { useEffect, useRef } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { AstrologyBadges } from "@/components/astrology/AstrologyBadges";
 import { ChatHeader, ChatInput, EmptyChatState, MessageList } from "@/components/chat";
 import { KeyboardAwareView } from "@/components/ui";
 import { api } from "@/convex/_generated/api";
@@ -126,10 +128,18 @@ export function ChatRoom({ matchId: id, onBack, hideHeader = false }: ChatRoomPr
 
       <KeyboardAwareView keyboardVerticalOffset={hideHeader ? 0 : 90} style={{ flex: 1 }}>
         {messages?.length === 0 ? (
-          <EmptyChatState
-            name={otherUser?.name || "your match"}
-            imageUri={imageUri}
-          />
+          <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+            <EmptyChatState
+              name={otherUser?.name || "your match"}
+              imageUri={imageUri}
+            />
+            {/* Show full astrology profile since they matched */}
+            {otherUser && (
+              <View style={{ paddingHorizontal: 16, paddingBottom: 24 }}>
+                <AstrologyBadges user={otherUser} isMatched={true} />
+              </View>
+            )}
+          </ScrollView>
         ) : (
           <MessageList
             ref={flatListRef}

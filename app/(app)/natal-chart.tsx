@@ -43,7 +43,7 @@ export default function NatalChartScreen() {
     <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace("/(app)/(tabs)")} style={styles.backButton}>
           <Ionicons name="chevron-back" size={24} color={colors.onBackground} />
         </TouchableOpacity>
         <Text style={[styles.title, { color: colors.onBackground }]}>Bản Đồ Sao</Text>
@@ -62,7 +62,7 @@ export default function NatalChartScreen() {
           <Text style={[
             styles.toggleText,
             houseSystem === "wholeSign" ? { color: "#FFF" } : { color: colors.onSurfaceVariant }
-          ]}>Whole Sign (Tử Vi)</Text>
+          ]}>Whole Sign (Toàn Cung)</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[
@@ -85,7 +85,7 @@ export default function NatalChartScreen() {
         ) : error ? (
           <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
         ) : chartData ? (
-          <View style={{ flex: 1, width: "100%", aspectRatio: 1 }}>
+          <View style={{ width: "100%", height: 420 }}>
              <NatalChartView 
                planets={chartData.planets}
                cusps={chartData.houses[houseSystem]}
@@ -102,8 +102,8 @@ export default function NatalChartScreen() {
           <Text style={[styles.infoTitle, { color: colors.onBackground }]}>Phân tích góc nhìn</Text>
           <Text style={[styles.infoDesc, { color: colors.onSurfaceVariant }]}>
             {houseSystem === "wholeSign" 
-              ? "Whole Sign House System chia đều mỗi cung hoàng đạo thành 1 nhà. Đây là góc nhìn trực quan, dễ hiểu và tương đồng với logic của Tử Vi phương Đông, rất phù hợp cho người Việt Nam mới tiếp cận Bản đồ sao."
-              : "Placidus House System tính toán các nhà dựa trên vị trí địa lý và thời gian chính xác, mang lại chiều sâu phân tích tâm lý, tính cách và mối quan hệ (AI sẽ dùng góc nhìn này để đánh giá độ tương hợp)."}
+              ? "Whole Sign (Toàn Cung) chia đều mỗi cung hoàng đạo thành 1 nhà. Đây là góc nhìn trực quan, dễ hiểu và tương đồng với logic của Tử Vi phương Đông, rất phù hợp cho người Việt Nam mới tiếp cận Bản đồ sao."
+              : "Placidus tính toán các nhà dựa trên vị trí địa lý và thời gian chính xác, mang lại chiều sâu phân tích tâm lý, tính cách và mối quan hệ (AI sẽ dùng góc nhìn này để đánh giá độ tương hợp)."}
           </Text>
         </View>
       )}

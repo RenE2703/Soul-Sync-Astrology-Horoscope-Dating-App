@@ -58,7 +58,7 @@ export default function ProfileViewScreen() {
       if (result.matched) {
         // Show match modal or navigate
       }
-      router.back();
+      if (router.canGoBack()) router.back(); else router.replace("/(app)/(tabs)");
     } catch (error) {
       console.error("Failed to like:", error);
     }
@@ -74,7 +74,7 @@ export default function ProfileViewScreen() {
         swipedId: profile._id,
         action: "reject",
       });
-      router.back();
+      if (router.canGoBack()) router.back(); else router.replace("/(app)/(tabs)");
     } catch (error) {
       console.error("Failed to reject:", error);
     }
@@ -122,7 +122,7 @@ export default function ProfileViewScreen() {
               style={styles.closeButton}
               onPress={() => {
                 hapticButtonPress();
-                router.back();
+                if (router.canGoBack()) router.back(); else router.replace("/(app)/(tabs)");
               }}
             >
               <GlassView style={styles.closeButtonGlass} glassEffectStyle="regular">
