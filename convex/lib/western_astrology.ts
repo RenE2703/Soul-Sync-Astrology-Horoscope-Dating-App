@@ -1,6 +1,6 @@
 "use node";
 // @ts-ignore - circular-natal-horoscope-js has no type declarations
-import { Origin, Horoscope } from "circular-natal-horoscope-js";
+const { Origin, Horoscope } = require("circular-natal-horoscope-js");
 
 // ============================================================
 // TYPES
