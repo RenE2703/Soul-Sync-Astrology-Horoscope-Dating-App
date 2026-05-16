@@ -119,7 +119,7 @@ export default function DiscoverScreen() {
         exiting={FadeOut.duration(200)}
         style={styles.profileContainer}
       >
-        <ProfileView user={currentProfile} distance={currentProfile.distance} />
+        <ProfileView user={currentProfile} distance={currentProfile.distance} locationName={currentProfile.locationName} />
       </Animated.View>
 
       {/* Floating Action Buttons */}

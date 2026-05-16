@@ -81,8 +81,11 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
 
-  // Get city name from coordinates
-  const { locationInfo } = useReverseGeocode(profile?.location);
+  // Use stored locationName from DB; fall back to reverse geocoding if not stored
+  const { locationInfo: geocodedInfo } = useReverseGeocode(
+    profile?.locationName ? null : profile?.location
+  );
+  const locationDisplayName = profile?.locationName || geocodedInfo?.displayName || null;
 
   const handleSignOut = () => {
     hapticButtonPress();
@@ -214,10 +217,10 @@ export default function ProfileScreen() {
                 <Text style={styles.genderText}>{profile.gender}</Text>
               </View>
             )}
-            {locationInfo?.displayName && (
+            {locationDisplayName && (
               <View style={styles.locationRow}>
                 <Ionicons name="location" size={14} color="#FFFFFF" style={styles.locationIcon} />
-                <Text style={styles.locationText}>{locationInfo.displayName}</Text>
+                <Text style={styles.locationText}>{locationDisplayName}</Text>
               </View>
             )}
           </View>

@@ -96,6 +96,7 @@ export const createProfile = internalMutation({
         longitude: v.number(),
       })
     ),
+    locationName: v.optional(v.string()),
     maxDistance: v.optional(v.number()),
     dealBreakers: v.optional(
       v.object({
@@ -140,6 +141,7 @@ export const createProfileWithEmbedding = action({
         longitude: v.number(),
       })
     ),
+    locationName: v.optional(v.string()),
     maxDistance: v.optional(v.number()),
     dealBreakers: v.optional(
       v.object({
@@ -201,6 +203,7 @@ export const updateProfile = mutation({
         longitude: v.number(),
       })
     ),
+    locationName: v.optional(v.string()),
     maxDistance: v.optional(v.number()),
   },
   handler: async (ctx, args): Promise<void> => {

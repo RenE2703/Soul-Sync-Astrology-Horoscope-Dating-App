@@ -9,7 +9,7 @@ import { generateAstroAnalysis } from "./lib/ai_service";
 
 /**
  * Core Integration Engine Function
- * Connects Modules 1, 2, 3 into a Raw Astro Data object,
+ * Connects Modules 1, 2, w3 into a Raw Astro Data object,
  * and pushes to Module 4 (AI Gateway) to return structured JSON.
  *
  * Now uses CircularNatalHoroscopeJS for accurate natal chart calculations

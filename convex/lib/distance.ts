@@ -71,28 +71,28 @@ function toRadians(degrees: number): number {
  * Check if a user is within a maximum distance
  * @param userLocation User's location
  * @param targetLocation Target location to check
- * @param maxDistanceMiles Maximum distance in miles
+ * @param maxDistanceKm Maximum distance in km
  * @returns true if within distance, false otherwise
  */
 export function isWithinDistance(
   userLocation: { latitude: number; longitude: number } | undefined,
   targetLocation: { latitude: number; longitude: number } | undefined,
-  maxDistanceMiles: number | undefined
+  maxDistanceKm: number | undefined
 ): boolean {
   // If no max distance set, don't filter by distance
-  if (!maxDistanceMiles) return true;
+  if (!maxDistanceKm) return true;
   
   // If either user doesn't have location, don't filter them out
   if (!userLocation || !targetLocation) return true;
 
-  const distance = calculateDistanceMiles(
+  const distance = calculateDistanceKm(
     userLocation.latitude,
     userLocation.longitude,
     targetLocation.latitude,
     targetLocation.longitude
   );
 
-  return distance <= maxDistanceMiles;
+  return distance <= maxDistanceKm;
 }
 
 /**

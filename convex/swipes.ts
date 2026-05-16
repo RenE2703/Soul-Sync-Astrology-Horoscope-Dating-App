@@ -9,7 +9,7 @@ import {
   query,
 } from "./_generated/server";
 import { areUsersCompatible } from "./lib/compatibility";
-import { getDistanceBetweenUsers } from "./lib/distance";
+import { calculateDistanceKm } from "./lib/distance";
 import { withResolvedPhotos, withResolvedPhotosArray } from "./lib/photos";
 
 // Helper function to create a swipe and check for mutual match
@@ -165,10 +165,16 @@ export const getSwipeFeed = query({
       // Check compatibility (gender, age, distance preferences)
       if (!areUsersCompatible(currentUser, user)) continue;
 
-      // Calculate distance for sorting
+      // Calculate distance in km for sorting and display
       const distance =
-        getDistanceBetweenUsers(currentUser.location, user.location) ??
-        Infinity;
+        currentUser.location && user.location
+          ? calculateDistanceKm(
+              currentUser.location.latitude,
+              currentUser.location.longitude,
+              user.location.latitude,
+              user.location.longitude
+            )
+          : Infinity;
 
       // Add to candidates, keeping sorted by distance
       candidates.push({ user, distance });
@@ -190,10 +196,11 @@ export const getSwipeFeed = query({
       topCandidates.map((c) => c.user),
     );
 
-    // Add distance to each user
+    // Add distance and locationName to each user
     return usersWithPhotos.map((user, index) => ({
       ...user,
       distance: topCandidates[index].distance,
+      locationName: topCandidates[index].user.locationName || null,
     }));
   },
 });

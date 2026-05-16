@@ -4,13 +4,13 @@ import { StyleSheet, Text, View } from "react-native";
 import { hapticSelection } from "@/lib/haptics";
 import { useAppTheme } from "@/lib/theme";
 
-/** Distance steps: 10, 25, 50, 100, Unlimited (undefined) */
-export const DISTANCE_STEPS: (number | undefined)[] = [10, 25, 50, 100, undefined];
+/** Distance steps in km: 15, 30, 50, 100, Unlimited (undefined) */
+export const DISTANCE_STEPS: (number | undefined)[] = [15, 30, 50, 100, undefined];
 
 /** Get a human-readable label for a distance value */
 export const getDistanceLabel = (distance: number | undefined): string => {
-  if (distance === undefined) return "Unlimited";
-  return `${distance} miles`;
+  if (distance === undefined) return "Không giới hạn";
+  return `${distance} km`;
 };
 
 /** Get the index for a given distance value in DISTANCE_STEPS */
@@ -74,10 +74,10 @@ export function DistanceSlider({ value, onChange }: DistanceSliderProps) {
       />
       <View style={styles.labels}>
         <Text style={[styles.endLabel, { color: colors.onSurfaceVariant }]}>
-          10 mi
+          15 km
         </Text>
         <Text style={[styles.endLabel, { color: colors.onSurfaceVariant }]}>
-          Unlimited
+          Không giới hạn
         </Text>
       </View>
     </View>

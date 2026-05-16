@@ -23,10 +23,11 @@ const PHOTO_HEIGHT = SCREEN_HEIGHT * 0.55;
 
 interface ProfileViewProps {
   user: Doc<"users">;
-  distance?: number | null; // Distance in miles (optional)
+  distance?: number | null; // Distance in km (optional)
+  locationName?: string | null; // Stored city name (optional)
 }
 
-export function ProfileView({ user, distance }: ProfileViewProps) {
+export function ProfileView({ user, distance, locationName }: ProfileViewProps) {
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
@@ -96,11 +97,17 @@ export function ProfileView({ user, distance }: ProfileViewProps) {
                 <Text style={styles.genderText}>{user.gender}</Text>
               </View>
             )}
-            {distance !== undefined && distance !== null && (
+            {(locationName || (distance !== undefined && distance !== null)) && (
               <View style={styles.distanceRow}>
                 <Ionicons name="location-outline" size={14} color="rgba(255,255,255,0.9)" />
                 <Text style={styles.distanceText}>
-                  {distance < 1 ? "< 1" : Math.round(distance)} mi
+                  {locationName && distance !== undefined && distance !== null && distance !== Infinity
+                    ? `${locationName} · ${distance < 1 ? "<1" : Math.round(distance)} km`
+                    : locationName
+                      ? locationName
+                      : distance !== undefined && distance !== null && distance !== Infinity
+                        ? `${distance < 1 ? "<1" : Math.round(distance)} km`
+                        : ""}
                 </Text>
               </View>
             )}

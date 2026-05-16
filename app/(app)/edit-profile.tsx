@@ -80,14 +80,19 @@ export default function EditProfileScreen() {
   const [lookingFor, setLookingFor] = useState<LookingForOption>("everyone");
   
   // Location state - use index for slider, derive actual value
-  const [distanceIndex, setDistanceIndex] = useState(1); // Default to 25 miles (index 1)
+  const [distanceIndex, setDistanceIndex] = useState(1); // Default to 30 km (index 1)
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [locationInfoOverride, setLocationInfoOverride] = useState<LocationInfo | null>(null);
   const [isUpdatingLocation, setIsUpdatingLocation] = useState(false);
+  const [storedLocationName, setStoredLocationName] = useState<string | null>(null);
 
-  // Reverse geocode the location - use override if freshly updated, otherwise use hook
-  const { locationInfo: geocodedInfo } = useReverseGeocode(locationInfoOverride ? null : location);
-  const locationInfo = locationInfoOverride || geocodedInfo;
+  // Reverse geocode the location - use stored name first, then override, then hook
+  const { locationInfo: geocodedInfo } = useReverseGeocode(
+    storedLocationName || locationInfoOverride ? null : location
+  );
+  const locationInfo = storedLocationName 
+    ? { city: null, region: null, country: null, displayName: storedLocationName } 
+    : (locationInfoOverride || geocodedInfo);
 
   const maxDistance = DISTANCE_STEPS[distanceIndex];
 
@@ -121,6 +126,7 @@ export default function EditProfileScreen() {
       // Location settings - convert saved value to index
       setDistanceIndex(getDistanceIndex(profile.maxDistance));
       setLocation(profile.location ?? null);
+      setStoredLocationName(profile.locationName ?? null);
     }
   }, [profile]);
 
@@ -179,6 +185,9 @@ export default function EditProfileScreen() {
         photos: photoIds,
         maxDistance,
         ...(location && { location }),
+        ...(locationInfo?.displayName && locationInfo.displayName !== "Unknown location" && {
+          locationName: locationInfo.displayName,
+        }),
       });
 
       hapticSuccess();
@@ -204,6 +213,7 @@ export default function EditProfileScreen() {
       if (result.location) {
         setLocation(result.location);
         setLocationInfoOverride(result.locationInfo);
+        setStoredLocationName(null); // Clear stored name so fresh geocoded name is used
         hapticSuccess();
       }
     } catch (error) {

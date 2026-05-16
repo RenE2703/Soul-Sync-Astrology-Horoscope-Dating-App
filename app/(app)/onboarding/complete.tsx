@@ -69,6 +69,7 @@ export default function CompleteScreen() {
         const latitude = params.latitude ? parseFloat(params.latitude as string) : undefined;
         const longitude = params.longitude ? parseFloat(params.longitude as string) : undefined;
         const maxDistance = params.maxDistance ? parseInt(params.maxDistance as string, 10) : undefined;
+        const locationName = (params.locationName as string) || undefined;
 
         // Deal-breaker params (optional)
         const dealBreakers_religion = (params.dealBreakers_religion as string) || "Any";
@@ -92,6 +93,7 @@ export default function CompleteScreen() {
           ...(latitude !== undefined && longitude !== undefined && {
             location: { latitude, longitude },
           }),
+          ...(locationName && { locationName }),
           ...(maxDistance !== undefined && { maxDistance }),
           dealBreakers: {
             religion: dealBreakers_religion,

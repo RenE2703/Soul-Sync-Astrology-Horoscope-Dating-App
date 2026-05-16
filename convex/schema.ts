@@ -37,7 +37,8 @@ export default defineSchema({
         longitude: v.number(),
       })
     ),
-    maxDistance: v.optional(v.number()), // in miles
+    locationName: v.optional(v.string()), // e.g. "Hồ Chí Minh, Việt Nam"
+    maxDistance: v.optional(v.number()), // in km
     dealBreakers: v.optional(
       v.object({
         religion: v.optional(v.string()),           // e.g. "Buddhist", "Christian", "Any"
