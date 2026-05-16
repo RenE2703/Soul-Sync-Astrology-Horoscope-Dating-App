@@ -5,6 +5,7 @@ import { ActivityIndicator, StyleSheet, View } from "react-native";
 
 import { api } from "@/convex/_generated/api";
 import { useAppTheme } from "@/lib/theme";
+import { NewMatchListener } from "@/components/matches";
 
 export default function AppLayout() {
   const { user } = useUser();
@@ -37,13 +38,16 @@ export default function AppLayout() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-      <Stack.Screen name="edit-profile" options={{ headerShown: true, title: "Edit Profile" }} />
-      <Stack.Screen name="chat/[id]" options={{ headerShown: true, title: "Chat" }} />
-      <Stack.Screen name="profile/[id]" options={{ presentation: "modal" }} />
-    </Stack>
+    <>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+        <Stack.Screen name="edit-profile" options={{ headerShown: true, title: "Edit Profile" }} />
+        <Stack.Screen name="chat/[id]" options={{ headerShown: true, title: "Chat" }} />
+        <Stack.Screen name="profile/[id]" options={{ presentation: "modal" }} />
+      </Stack>
+      {hasProfile && !inOnboarding && <NewMatchListener />}
+    </>
   );
 }
 

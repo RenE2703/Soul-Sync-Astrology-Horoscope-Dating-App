@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { GlassHeader } from "@/components/glass";
-import { DailyPickCard, MatchModal } from "@/components/matches";
+import { DailyPickCard } from "@/components/matches";
 import { Countdown, EmptyState, LoadingScreen } from "@/components/ui";
 
 import { api } from "@/convex/_generated/api";
@@ -62,7 +62,6 @@ export default function DailyPicksScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [matchedUser, setMatchedUser] = useState<Doc<"users"> | null>(null);
   const [matchId, setMatchId] = useState<Id<"matches"> | null>(null);
-  const [showMatchModal, setShowMatchModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const flatListRef = useRef<FlatList>(null);
@@ -133,7 +132,7 @@ export default function DailyPicksScreen() {
       if (result.matched && result.matchId) {
         setMatchedUser(pick.user);
         setMatchId(result.matchId);
-        setShowMatchModal(true);
+        // showMatchModal removed; NewMatchListener handles it
       } else {
         // Move to next pick or show all-reviewed
         goToNextPick();
@@ -156,14 +155,12 @@ export default function DailyPicksScreen() {
   };
 
   const handleSendMessage = () => {
-    setShowMatchModal(false);
     if (matchId) {
       router.push(`/(app)/chat/${matchId}`);
     }
   };
 
   const handleKeepBrowsing = () => {
-    setShowMatchModal(false);
     setMatchedUser(null);
     setMatchId(null);
     goToNextPick();
@@ -334,16 +331,7 @@ export default function DailyPicksScreen() {
         })}
       />
 
-      {/* Match Modal */}
-      {currentUser && (
-        <MatchModal
-          visible={showMatchModal}
-          currentUser={currentUser}
-          matchedUser={matchedUser}
-          onSendMessage={handleSendMessage}
-          onKeepSwiping={handleKeepBrowsing}
-        />
-      )}
+      {/* Match Modal handled globally */}
     </View>
   );
 }

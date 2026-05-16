@@ -1,11 +1,9 @@
 import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { Dimensions, StyleSheet, View } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-import { MatchModal } from "@/components/matches";
 import { FloatingActions, ProfileView } from "@/components/profile";
 import { EmptyState, LoadingScreen } from "@/components/ui";
 
@@ -30,9 +28,7 @@ export default function DiscoverScreen() {
   const createSwipe = useMutation(api.swipes.createSwipe);
 
   // State
-  const [matchedUser, setMatchedUser] = useState<Doc<"users"> | null>(null);
-  const [matchId, setMatchId] = useState<Id<"matches"> | null>(null);
-  const [showMatchModal, setShowMatchModal] = useState(false);
+  // State
   const [swipedIds, setSwipedIds] = useState<Set<string>>(new Set());
 
   // Filter out locally swiped profiles for instant feedback (optimistic update)
@@ -54,11 +50,7 @@ export default function DiscoverScreen() {
       action,
     })
       .then((result) => {
-        if (result.matched && result.matchId) {
-          setMatchedUser(profileToSwipe);
-          setMatchId(result.matchId);
-          setShowMatchModal(true);
-        }
+        // Global listener will handle showing the match modal if result.matched is true
       })
       .catch((error) => {
         console.error("Failed to record action:", error);
@@ -71,21 +63,9 @@ export default function DiscoverScreen() {
       });
   };
 
+  // Action handlers
   const handleLike = () => handleAction("like");
   const handleReject = () => handleAction("reject");
-
-  const handleSendMessage = () => {
-    setShowMatchModal(false);
-    if (matchId) {
-      router.push(`/(app)/chat/${matchId}`);
-    }
-  };
-
-  const handleKeepSwiping = () => {
-    setShowMatchModal(false);
-    setMatchedUser(null);
-    setMatchId(null);
-  };
 
   // Still loading from Convex (protected route handles no-profile case)
   if (currentUser === undefined || currentUser === null) {
@@ -129,14 +109,6 @@ export default function DiscoverScreen() {
         disabled={!currentProfile}
       />
 
-      {/* Match Modal */}
-      <MatchModal
-        visible={showMatchModal}
-        currentUser={currentUser}
-        matchedUser={matchedUser}
-        onSendMessage={handleSendMessage}
-        onKeepSwiping={handleKeepSwiping}
-      />
     </View>
   );
 }
