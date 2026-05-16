@@ -1,11 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useAction, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   FlatList,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
   ViewToken,
 } from "react-native";
@@ -54,6 +55,7 @@ export default function DailyPicksScreen() {
   // Actions
   const generateDailyPicks = useAction(api.matches.generateDailyPicks);
   const actOnDailyPick = useAction(api.matches.actOnDailyPick);
+  const clearDailyPicks = useMutation(api.matches.clearDailyPicks);
 
   // State
   const [isGenerating, setIsGenerating] = useState(false);
@@ -83,6 +85,19 @@ export default function DailyPicksScreen() {
     generateIfNeeded();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dailyPicks, currentUser?._id, isGenerating]);
+
+  // Force refresh daily picks (for testing)
+  const handleRefreshPicks = async () => {
+    if (!currentUser?._id || isGenerating) return;
+    setIsGenerating(true);
+    try {
+      await clearDailyPicks({ userId: currentUser._id });
+      // useEffect will auto-trigger generation when dailyPicks becomes null
+    } catch (error) {
+      console.error("Failed to refresh picks:", error);
+      setIsGenerating(false);
+    }
+  };
 
   // Get pending picks (not yet liked/passed)
   const pendingPicks = dailyPicks?.picks.filter((p) => p.status === "pending") ?? [];
@@ -212,6 +227,18 @@ export default function DailyPicksScreen() {
   // Combined right content for header (timer on top, position badge below)
   const HeaderRightContent = (
     <View style={styles.headerRight}>
+      <TouchableOpacity
+        onPress={handleRefreshPicks}
+        disabled={isGenerating}
+        style={[styles.refreshButton, { borderColor: colors.outline }]}
+        activeOpacity={0.7}
+      >
+        <Ionicons
+          name="refresh"
+          size={16}
+          color={isGenerating ? colors.outline : colors.primary}
+        />
+      </TouchableOpacity>
       {TimerContent}
       {PositionBadge}
     </View>
@@ -227,7 +254,7 @@ export default function DailyPicksScreen() {
         <GlassHeader
           title="Today's Picks"
           subtitle={SubtitleContent}
-          rightContent={TimerContent}
+          rightContent={HeaderRightContent}
         />
         <EmptyState
           icon="sparkles-outline"
@@ -248,7 +275,7 @@ export default function DailyPicksScreen() {
         <GlassHeader
           title="Today's Picks"
           subtitle={SubtitleContent}
-          rightContent={TimerContent}
+          rightContent={HeaderRightContent}
         />
         <EmptyState
           icon="checkmark-circle-outline"
@@ -379,5 +406,13 @@ const styles = StyleSheet.create({
   countdownText: {
     fontSize: 16,
     fontWeight: "600",
+  },
+  refreshButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

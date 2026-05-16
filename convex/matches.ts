@@ -5,6 +5,7 @@ import {
   action,
   internalMutation,
   internalQuery,
+  mutation,
   query,
 } from "./_generated/server";
 import { areUsersCompatible } from "./lib/compatibility";
@@ -242,6 +243,21 @@ export const getDailyPicksInternal = internalQuery({
   },
 });
 
+// Clear daily picks so they regenerate (for testing / manual refresh)
+export const clearDailyPicks = mutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("dailyPicks")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .first();
+
+    if (existing) {
+      await ctx.db.delete(existing._id);
+    }
+  },
+});
+
 // Save or update daily picks (internal)
 export const saveDailyPicks = internalMutation({
   args: {
@@ -305,6 +321,7 @@ export const updatePickStatus = internalMutation({
 });
 
 // Generate daily picks with AI explanations
+// Uses progressive filter relaxation to guarantee at least 1 pick per day
 export const generateDailyPicks = action({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
@@ -316,55 +333,133 @@ export const generateDailyPicks = action({
       throw new Error("User not found or has no embedding");
     }
 
-    // Vector search for similar profiles
+    // Vector search for similar profiles (wider pool)
     const results: VectorSearchResult[] = await ctx.vectorSearch(
       "users",
       "by_embedding_v3_final",
       {
         vector: user.embedding,
-        limit: 30,
+        limit: 50,
       },
     );
 
-    // Filter and get top 3 picks
+    // ── Progressive filter relaxation ──────────────────────────
+    // Pass 1: strict (gender + age + distance + deal-breakers)
+    // Pass 2: relax distance (skip distance check)
+    // Pass 3: relax age + distance
+    // Pass 4: only gender filter (absolute minimum)
+    // This guarantees we almost always find at least 1 pick.
+
+    type FilterPass = {
+      label: string;
+      check: (candidate: Doc<"users">) => boolean;
+    };
+
+    const filterPasses: FilterPass[] = [
+      {
+        label: "strict",
+        check: (candidate) => areUsersCompatible(user, candidate),
+      },
+      {
+        label: "relaxed-distance",
+        check: (candidate) => {
+          // Gender preferences (bidirectional)
+          if (!user.lookingFor.includes(candidate.gender)) return false;
+          if (!candidate.lookingFor.includes(user.gender)) return false;
+          // Age preferences (bidirectional)
+          if (candidate.age < user.ageRange.min || candidate.age > user.ageRange.max) return false;
+          if (user.age < candidate.ageRange.min || user.age > candidate.ageRange.max) return false;
+          // Skip distance check
+          return true;
+        },
+      },
+      {
+        label: "relaxed-age-distance",
+        check: (candidate) => {
+          // Gender preferences only (bidirectional)
+          if (!user.lookingFor.includes(candidate.gender)) return false;
+          if (!candidate.lookingFor.includes(user.gender)) return false;
+          // Skip age + distance
+          return true;
+        },
+      },
+      {
+        label: "gender-only",
+        check: (candidate) => {
+          // Only check user's gender preference (one-directional)
+          if (!user.lookingFor.includes(candidate.gender)) return false;
+          return true;
+        },
+      },
+    ];
+
     const topPicks: {
       userId: Id<"users">;
       score: number;
       user: Doc<"users">;
     }[] = [];
 
-    for (const result of results) {
-      if (topPicks.length >= 3) break;
+    // Pre-filter: collect all non-self, non-swiped candidates
+    const validCandidates: { id: Id<"users">; score: number; user: Doc<"users"> }[] = [];
 
-      // Skip self
+    for (const result of results) {
       if (result._id === args.userId) continue;
 
       const candidate = await ctx.runQuery(internal.users.getInternal, {
         id: result._id,
       });
-
       if (!candidate) continue;
-
-      // Check compatibility (gender, age, distance preferences)
-      if (!areUsersCompatible(user, candidate)) continue;
 
       // Check if already swiped
       const existingSwipe = await ctx.runQuery(internal.swipes.getSwipe, {
         swiperId: args.userId,
         swipedId: result._id,
       });
-
       if (existingSwipe) continue;
 
-      topPicks.push({
-        userId: result._id,
+      validCandidates.push({
+        id: result._id,
         score: result._score,
         user: candidate,
       });
     }
 
+    // Run progressive passes until we have at least 1 pick (max 3)
+    const pickedIds = new Set<string>();
+
+    for (const pass of filterPasses) {
+      if (topPicks.length >= 3) break;
+
+      for (const candidate of validCandidates) {
+        if (topPicks.length >= 3) break;
+        if (pickedIds.has(candidate.id)) continue;
+
+        if (pass.check(candidate.user)) {
+          topPicks.push({
+            userId: candidate.id,
+            score: candidate.score,
+            user: candidate.user,
+          });
+          pickedIds.add(candidate.id);
+        }
+      }
+
+      // If we have at least 1 pick after this pass, stop relaxing
+      if (topPicks.length > 0) break;
+    }
+
+    // Last resort: if still 0 picks, just grab the highest-scoring non-swiped candidate
+    if (topPicks.length === 0 && validCandidates.length > 0) {
+      const fallback = validCandidates[0]; // already sorted by vector score
+      topPicks.push({
+        userId: fallback.id,
+        score: fallback.score,
+        user: fallback.user,
+      });
+    }
+
     if (topPicks.length === 0) {
-      // No picks available
+      // Truly no candidates at all (empty DB)
       const now = Date.now();
       const midnight = new Date();
       midnight.setHours(24, 0, 0, 0);

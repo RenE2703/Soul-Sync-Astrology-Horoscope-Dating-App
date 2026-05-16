@@ -26,20 +26,52 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const PHOTO_HEIGHT = SCREEN_HEIGHT * 0.55;
 
 // Zodiac sign emoji and element mapping
-const ZODIAC_INFO: Record<string, { emoji: string; element: string }> = {
-  Aries: { emoji: "♈", element: "Fire" },
-  Taurus: { emoji: "♉", element: "Earth" },
-  Gemini: { emoji: "♊", element: "Air" },
-  Cancer: { emoji: "♋", element: "Water" },
-  Leo: { emoji: "♌", element: "Fire" },
-  Virgo: { emoji: "♍", element: "Earth" },
-  Libra: { emoji: "♎", element: "Air" },
-  Scorpio: { emoji: "♏", element: "Water" },
-  Sagittarius: { emoji: "♐", element: "Fire" },
-  Capricorn: { emoji: "♑", element: "Earth" },
-  Aquarius: { emoji: "♒", element: "Air" },
-  Pisces: { emoji: "♓", element: "Water" },
+const ZODIAC_INFO: Record<string, { emoji: string; element: string; vi: string }> = {
+  Aries:       { emoji: "♈", element: "Lửa",   vi: "Bạch Dương" },
+  Taurus:      { emoji: "♉", element: "Đất",   vi: "Kim Ngưu" },
+  Gemini:      { emoji: "♊", element: "Gió",   vi: "Song Tử" },
+  Cancer:      { emoji: "♋", element: "Nước",  vi: "Cự Giải" },
+  Leo:         { emoji: "♌", element: "Lửa",   vi: "Sư Tử" },
+  Virgo:       { emoji: "♍", element: "Đất",   vi: "Xử Nữ" },
+  Libra:       { emoji: "♎", element: "Gió",   vi: "Thiên Bình" },
+  Scorpio:     { emoji: "♏", element: "Nước",  vi: "Bọ Cạp" },
+  Sagittarius: { emoji: "♐", element: "Lửa",   vi: "Nhân Mã" },
+  Capricorn:   { emoji: "♑", element: "Đất",   vi: "Ma Kết" },
+  Aquarius:    { emoji: "♒", element: "Gió",   vi: "Bảo Bình" },
+  Pisces:      { emoji: "♓", element: "Nước",  vi: "Song Ngư" },
 };
+
+// ── Hán-Việt translation helpers ───────────────────────────
+const HAN_VIET: Record<string, string> = {
+  "甲":"Giáp","乙":"Ất","丙":"Bính","丁":"Đinh","戊":"Mậu",
+  "己":"Kỷ","庚":"Canh","辛":"Tân","壬":"Nhâm","癸":"Quý",
+  "子":"Tý","丑":"Sửu","寅":"Dần","卯":"Mão","辰":"Thìn",
+  "巳":"Tỵ","午":"Ngọ","未":"Mùi","申":"Thân","酉":"Dậu",
+  "戌":"Tuất","亥":"Hợi",
+  "金":"Kim","木":"Mộc","水":"Thủy","火":"Hỏa","土":"Thổ",
+  "鼠":"Chuột","牛":"Trâu","虎":"Hổ","兔":"Mèo","龙":"Rồng",
+  "蛇":"Rắn","马":"Ngựa","羊":"Dê","猴":"Khỉ","鸡":"Gà",
+  "狗":"Chó","猪":"Heo",
+};
+
+const NA_YIN_VI: Record<string, string> = {
+  "海中金":"Kim Hải Trung","炉中火":"Hỏa Lư Trung","大林木":"Mộc Đại Lâm",
+  "路旁土":"Thổ Lộ Bàng","剑锋金":"Kim Kiếm Phong","山头火":"Hỏa Sơn Đầu",
+  "涧下水":"Thủy Giản Hạ","城头土":"Thổ Thành Đầu","白蜡金":"Kim Bạch Lạp",
+  "杨柳木":"Mộc Dương Liễu","泉中水":"Thủy Tuyền Trung","屋上土":"Thổ Ốc Thượng",
+  "霹雳火":"Hỏa Tích Lịch","松柏木":"Mộc Tùng Bách","长流水":"Thủy Trường Lưu",
+  "沙中金":"Kim Sa Trung","山下火":"Hỏa Sơn Hạ","平地木":"Mộc Bình Địa",
+  "壁上土":"Thổ Bích Thượng","金箔金":"Kim Kim Bạc","覆灯火":"Hỏa Phúc Đăng",
+  "天河水":"Thủy Thiên Hà","大驿土":"Thổ Đại Dịch","钗钏金":"Kim Thoa Xuyến",
+  "桑柘木":"Mộc Tang Giá","大溪水":"Thủy Đại Khê","沙中土":"Thổ Sa Trung",
+  "天上火":"Hỏa Thiên Thượng","石榴木":"Mộc Thạch Lựu","大海水":"Thủy Đại Hải",
+};
+
+function toViet(raw: string): string {
+  if (!raw) return raw;
+  if (NA_YIN_VI[raw]) return NA_YIN_VI[raw];
+  return raw.replace(/[\u4e00-\u9fff]/g, (ch) => HAN_VIET[ch] ?? ch);
+}
 
 export default function ProfileScreen() {
   const { colors } = useAppTheme();
@@ -287,9 +319,9 @@ export default function ProfileScreen() {
                   <Text style={styles.astrologyEmoji}>
                     {ZODIAC_INFO[profile.astrologyData.sun]?.emoji || "☀️"}
                   </Text>
-                  <Text style={[styles.astrologyLabel, { color: colors.onSurfaceVariant }]}>Sun</Text>
+                  <Text style={[styles.astrologyLabel, { color: colors.onSurfaceVariant }]}>Thái Dương</Text>
                   <Text style={[styles.astrologyValue, { color: colors.onBackground }]}>
-                    {profile.astrologyData.sun}
+                    {ZODIAC_INFO[profile.astrologyData.sun]?.vi || profile.astrologyData.sun}
                   </Text>
                   <Text style={[styles.astrologyElement, { color: colors.primary }]}>
                     {ZODIAC_INFO[profile.astrologyData.sun]?.element || ""}
@@ -301,9 +333,9 @@ export default function ProfileScreen() {
                   <Text style={styles.astrologyEmoji}>
                     {ZODIAC_INFO[profile.astrologyData.moon]?.emoji || "🌙"}
                   </Text>
-                  <Text style={[styles.astrologyLabel, { color: colors.onSurfaceVariant }]}>Moon</Text>
+                  <Text style={[styles.astrologyLabel, { color: colors.onSurfaceVariant }]}>Mặt Trăng</Text>
                   <Text style={[styles.astrologyValue, { color: colors.onBackground }]}>
-                    {profile.astrologyData.moon}
+                    {ZODIAC_INFO[profile.astrologyData.moon]?.vi || profile.astrologyData.moon}
                   </Text>
                   <Text style={[styles.astrologyElement, { color: colors.primary }]}>
                     {ZODIAC_INFO[profile.astrologyData.moon]?.element || ""}
@@ -315,9 +347,9 @@ export default function ProfileScreen() {
                   <Text style={styles.astrologyEmoji}>
                     {ZODIAC_INFO[profile.astrologyData.rising]?.emoji || "⬆️"}
                   </Text>
-                  <Text style={[styles.astrologyLabel, { color: colors.onSurfaceVariant }]}>Rising</Text>
+                  <Text style={[styles.astrologyLabel, { color: colors.onSurfaceVariant }]}>Cung Mọc</Text>
                   <Text style={[styles.astrologyValue, { color: colors.onBackground }]}>
-                    {profile.astrologyData.rising}
+                    {ZODIAC_INFO[profile.astrologyData.rising]?.vi || profile.astrologyData.rising}
                   </Text>
                   <Text style={[styles.astrologyElement, { color: colors.primary }]}>
                     {ZODIAC_INFO[profile.astrologyData.rising]?.element || ""}
@@ -333,9 +365,9 @@ export default function ProfileScreen() {
                       <Text style={{ fontSize: 20 }}>☯️</Text>
                     </View>
                     <View style={styles.tuViDetails}>
-                      <Text style={[styles.tuViLabel, { color: colors.onSurfaceVariant }]}>Tử Vi</Text>
+                      <Text style={[styles.tuViLabel, { color: colors.onSurfaceVariant }]}>Tử Vi · Can Chi</Text>
                       <Text style={[styles.tuViValue, { color: colors.onBackground }]}>
-                        {profile.astrologyData.canChi} · {profile.astrologyData.banMenh}
+                        {toViet(profile.astrologyData.canChi)} · {toViet(profile.astrologyData.banMenh)}
                       </Text>
                     </View>
                   </View>
