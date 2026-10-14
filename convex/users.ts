@@ -205,6 +205,7 @@ export const updateProfile = mutation({
     ),
     locationName: v.optional(v.string()),
     maxDistance: v.optional(v.number()),
+    preferredSystem: v.optional(v.union(v.literal("western"), v.literal("tuvi"))),
   },
   handler: async (ctx, args): Promise<void> => {
     const { id, dateOfBirth, ...updates } = args;
@@ -310,5 +311,44 @@ export const updateEmbeddingInternal_action = internalAction({
       userId: args.userId,
       embedding,
     });
+  },
+});
+
+// Delete user account and associated data (App Store compliance)
+export const deleteAccount = mutation({
+  args: { id: v.id("users") },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.id);
+    if (!user) return;
+
+    // Delete user's swipes
+    const userSwipes = await ctx.db
+      .query("swipes")
+      .withIndex("by_swiper", (q) => q.eq("swiperId", args.id))
+      .collect();
+    for (const swipe of userSwipes) {
+      await ctx.db.delete(swipe._id);
+    }
+
+    // Delete user's daily picks
+    const userPicks = await ctx.db
+      .query("dailyPicks")
+      .withIndex("by_user", (q) => q.eq("userId", args.id))
+      .collect();
+    for (const pick of userPicks) {
+      await ctx.db.delete(pick._id);
+    }
+
+    // Delete user's tarot readings
+    const userTarot = await ctx.db
+      .query("tarotReadings")
+      .withIndex("by_user_and_date", (q) => q.eq("userId", args.id))
+      .collect();
+    for (const tarot of userTarot) {
+      await ctx.db.delete(tarot._id);
+    }
+
+    // Finally delete user profile record
+    await ctx.db.delete(args.id);
   },
 });

@@ -45,6 +45,7 @@ export default function AppLayout() {
         <Stack.Screen name="edit-profile" options={{ headerShown: true, title: "Edit Profile" }} />
         <Stack.Screen name="chat/[id]" options={{ headerShown: true, title: "Chat" }} />
         <Stack.Screen name="profile/[id]" options={{ presentation: "modal" }} />
+        <Stack.Screen name="natal-chart" options={{ headerShown: false, animation: "slide_from_right" }} />
       </Stack>
       {hasProfile && !inOnboarding && <NewMatchListener />}
     </>
